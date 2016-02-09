@@ -1,0 +1,209 @@
+#
+# Sample configuration file for "make_simdb"
+#
+# Stephen Fegan / 2005-09-06
+#
+
+###############################################################################
+# DEFINITION OF DATA STORAGE
+###############################################################################
+
+# Directive: DataStorage <mode> [<parameter>...]
+#
+# Valid values for <mode> are:
+#
+# Database:       Event, telescope, pixel and photo-electron data is stored 
+#                 in the database
+# HFD5:           Telescope, pixel and photo-electron data is stored 
+#                 in external HDF5 files. Event data is stored in the
+#                 database and in the HDF files. This mode takes a single
+#                 parameter <directory> which contains the directory to
+#                 write the HDF files in.
+#
+# Example: DataStorage database
+#     or:  DataStorage hdf5 /u/work/veritas/simulations/basecamp/photons
+DataStorage database
+
+###############################################################################
+# DEFINITION OF PRIMARY TYPE AND ARRIVAL DISTRIBUTION
+###############################################################################
+
+# Directive: Primary <PrimaryType>
+#
+# Valid values for <PrimaryType> are:
+#
+# Gamma:          Gamma ray
+# Proton:         Proton
+# Electron:       Electron
+# Muon:           Muon
+# Helium:         Helium ion (A=4 Z=2)
+# Iron:           Iron ion (A=56 Z=26)
+# any integer n:  CORSIKA particle type "n" (see CORSIKA manual, section 8)
+Primary Gamma
+
+# Directive: PrimaryArrivalDistribution <Distribution> [<DistParameter> ...]
+#
+# Valid values for <Distribution> and associated <DistParameters> are:
+#
+# Isotropic <InnerRadiusDeg> <OuterRadiusDeg>: Scatter primary isotropically
+#		  around target direction in ring between inner and outer radii
+PrimaryArrivalDistribution Isotropic 0 0
+
+###############################################################################
+# DEFINITION OF SPECTRUM
+###############################################################################
+
+# Directive: SpectrumyResolution <BinsPerDecade> <EZeroGeV>
+SpectrumResolution 32 10
+
+# Directive: SpectrumPowerLaw <IntegralIndex> <ELoGeV> <EHiGeV> <IntFluxE0>
+SpectrumPowerLaw -1.5 10 48697 3000000
+
+# Directive: SpectrumMonoChromatic <EnergyGeV> <IntFlux>
+SpectrumMonoChromatic 100 100000
+
+# Directive: SpectrumMinimumPerEnergyBin <EventCount>
+SpectrumMinimumPerEnergyBin 0
+
+###############################################################################
+# SAMPLING RADIUS
+###############################################################################
+
+# Directive: SamplingRadiusBase <ZnLoDeg> <ZnHiDeg> <RadiusM>
+SamplingRadiusBase 0 30 250
+SamplingRadiusBase 35 90 360
+
+# Directive: SamplingRadiusLogEnergy <ZnLoDeg> <ZnHiDeg> 
+#				     <ELoGeV> <EHiGeV> <Factor>
+SamplingRadiusLogEnergy 0 35 40 48697 2.2
+SamplingRadiusLogEnergy 35 90 40 48697 2.2
+
+###############################################################################
+# DEFINITION OF POINTING GRID AND ARRAY POINTING MODE
+###############################################################################
+
+# Directive: PointingGrid <Distribution> <TargetMode> <ZnLoDeg> <ZnHiDeg> \
+#                         <ZnNBin> <AzLoDeg> <AzHiDeg> <AzNBin>
+#  
+# Valid values for <Distribution> are:
+#
+# EqualAreaEqualAzimuth: Grid points are isotropically distributed in sky with
+#                        <AzNBin> equally spaced azimuth bins and <ZNNBiN> 
+#                        zenith bins spaced equally as cos(zn).
+# 
+# EqualAreaEqualZenith:  Grid points are isotropically distributed in sky with
+#                        <ZnNBin> (approximately) equally spaced zenith bins. 
+#                        For each zenith bin, the number of azimuth bins is
+#                        chosen to keep the area per bin equal. The number of
+#                        azimuth bins in the largest zenith bin is given by 
+#                        <AZNBin>. If <AzNBin>=0 then the number is chosen so
+#                        that dAZ ~= cos(Zn) dZn (i.e. the grid is "square")
+#
+# Valid values for <TargetMode> are:
+#
+# Center:       Observations are targeted at the center of each bin in the 
+#               grid 
+#
+# Patch:        Observations are targeted isotropically over the area of each
+#               bin
+#
+# FixedZenith:  Observations are target along a "line" of constant zenith 
+#               angle through the middle of the bin
+#
+# FixedAzimuth: Observations are target along a "line" of constant azimuth 
+#               angle through the middle of the bin
+
+PointingGrid EqualAreaEqualZenith Center 0 50 5 0 360 0
+#PointingGrid EqualAreaEqualAzimuth FixedZenith 0 60 4 0 360 1
+#PointingGrid EqualAreaEqualAzimuth FixedZenith 0 28.955 1 0 360 1
+
+# Directive: Targeting <TargetingMode> [<TargetingParameter> ...]
+#
+# Valid values for <TargetingMode> and associated <TargetingParameters> are:
+#
+# Tracking:       Array tracks target location.
+#
+# OffsetTracking <ThetaDed> <PhiDeg>: Array tracks target location, offset
+#                 by <ThetaDeg> (in <PhiDeg> direction)
+# 
+# Wobble: <ThetaDef>: Array tracks target location, offset by <ThetaDeg>
+#                 in random direction.
+#
+# Fixed <ZnDeg> <AzDeg> : Array points to fixed direction in space
+Targeting Tracking
+
+# Directive: ArrayPointing <PointingMode> [<PointingParameter> ...]
+#
+# Valid values for <PointingMode> and associated <PointingParameters> are:
+#
+# Parallel:       Parallel pointing of all telescopes at target
+#
+# FlysEye <SpreadDegreesPerM>: Fly's Eye pointing mode where telescope pointing
+#                 is spread out in proportion to the distance of the telescope
+#                 from Telescope 0 with Theta = SpreadDegreesPerM * DistanceM
+ArrayPointing Parallel
+
+###############################################################################
+# DEFINITION OF NUMBER OF EVENTS TO GENERATE
+###############################################################################
+
+# Directive: EventCountPerPatch <ZnLo> <ZnHi> <EventCount>
+EventCountPerPatch 0 25 1000000
+EventCountPerPatch 25 90 500000
+
+# Directive: EventCountMultipler <Multipler>
+EventCountMultiplier 1
+
+###############################################################################
+# DEFINITION OF WORK UNIT SIZES
+###############################################################################
+
+# Directive: WorkUnitSizeFraction <Fraction>
+WorkUnitSizeFraction 0.01
+
+# Directive: WorkUnitSize <ELoGeV> <EHiGeV> <NumEvents>
+# WorkUnitSize 1000 100000 1
+
+# Directive: WorkUnitPriority <Mode> <LoValue> <HiValue> <Adjustment>
+#
+# Valid values for <Mode> are:
+#
+# Energy:  Increase the priority of energy bins between <LoValue> and <HiValue>
+#          (in GeV) by <Adjustment>
+#
+# Zenith:  Increase the priority of patches with zenith angle between <LoValue>
+#          and <HiValue> (in degrees) by <Adjustment>
+WorkUnitPriority Energy 10 50 -1
+WorkUnitPriority Zenith 30 90 -2
+
+###############################################################################
+# DEFINITION OF OPTICS
+###############################################################################
+
+# Directive: Optics <ZnLoDeg> <ZnHiDeg> <OpticsID>
+Optics 0 90 0
+#Optics 55 75 1
+
+# Directive: LoadOptics <OpticsID> <Source> <SourceLocation>
+#
+# Valid values for <Source> are:
+#
+# FromINIFile:  Generate a new optics array from INI file whose path is 
+#               given by <SourceLocation>
+#
+# FromDumpFile: Generate a new optics array from a optics dump file (see
+#               dump_optics program) whose path is given by <SourceLocation>
+LoadOptics 0 FromIniFile ../Data/veritas_optics_ideal.ini
+
+###############################################################################
+# DEFINITION OF STEERING FILE PARAMETERS AND VARIOUS DATA FILES
+###############################################################################
+
+# Directive: MakeSteeringCommandLine <CommandLineOption> [<Value>]
+MakeSteeringCommandLine 'magnetic_arizona'
+MakeSteeringCommandLine 'no_qgs'
+
+LoadQuantumEfficiency ../Data/quanteff.dat
+LoadMirrorReflectivity ../Data/mirreff.dat
+LoadAtmosphericAbsorption ../Data/daniel_atmabs.dat
+LoadModtranProfile ../Data/atmprof6.dat

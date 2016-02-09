@@ -1,0 +1,143 @@
+# -----------------------------------------------------------------------------
+#
+# ChiLA common makefile definitions
+# 
+# Original Author: Stephan Fegan
+# $Author: matthew $
+# $Date: 2010/04/25 01:27:12 $
+# $Revision: 1.39 $
+# $Tag$
+#
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# VERITAS DEFINES AND INCLUDES
+# -----------------------------------------------------------------------------
+
+ifndef VERITASDIR
+VERITASDIR = /usr/local/veritas
+endif
+
+VERITASBIN     = $(VERITASDIR)/bin
+VERITASCFLAGS  = -I$(VERITASDIR)/include
+VERITASLDFLAGS = -L$(VERITASDIR)/lib
+
+# -----------------------------------------------------------------------------
+# VBF
+# -----------------------------------------------------------------------------
+
+ifdef VBFSYS
+VBFBIN := $(VBFSYS)/bin/
+else
+VBFBIN := $(VERITASBIN)/
+endif
+
+VBFCONFIG = $(VBFBIN)vbfConfig
+VBFCFLAGS   := $(shell $(VBFCONFIG) --cppflags)
+VBFLDFLAGS  := $(shell $(VBFCONFIG) --ldflags)
+VBFLIBS     := $(shell $(VBFCONFIG) --libs)
+
+# -----------------------------------------------------------------------------
+# CHILA DEFINES AND INCLUDES
+# -----------------------------------------------------------------------------
+
+CHILACFLAGS = 	-fPIC $(MYSQLINC) \
+		-I$(CHILADIR)/VSCommon \
+		-I$(CHILADIR)/VSUtility \
+		-I$(CHILADIR)/VSSimDB \
+		-I$(CHILADIR)/Physics \
+		-I$(CHILADIR)/VSShower \
+		-I$(CHILADIR)/VSOptics \
+		-I$(CHILADIR)/VSAnalysis \
+		-I$(CHILADIR)/VSNSpace \
+		-I$(CHILADIR)/VSDataReduction \
+		-I$(CHILADIR)/SEphem \
+		-I. 
+
+CHILALDFLAGS = 	-fPIC -L$(CHILADIR)/VSOptics \
+		-L$(CHILADIR)/VSCommon \
+		-L$(CHILADIR)/VSUtility \
+		-L$(CHILADIR)/VSSimDB \
+		-L$(CHILADIR)/VSShower \
+		-L$(CHILADIR)/VSAnalysis \
+		-L$(CHILADIR)/Physics \
+		-L$(CHILADIR)/VSNSpace \
+		-L$(CHILADIR)/VSDataReduction \
+		-L$(CHILADIR)/SEphem \
+		-L. 
+
+CHILADEFFLAGS = -D__STDC_LIMIT_MACROS \
+		-D__STDC_CONSTANT_MACROS \
+		-D__STDC_FORMAT_MACROS \
+		-D_FILE_OFFSET_BITS=64 \
+		-D_LARGEFILE_SOURCE -DUSEALLOCA \
+		-D H5_USE_16_API
+
+VSLIBS = -lVSAnalysis -lVSShower -lVSOptics -lVSSimDB -lVSUtility -lPhysics -lVSCommon -lpthread
+
+# -----------------------------------------------------------------------------
+# CORSIKA
+# -----------------------------------------------------------------------------
+
+CORSIKA_DIR = $(HOME)/CORSIKA/corsika
+CORSIKA_DATA_DIR = $(CORSIKA_DIR)/run
+ifdef BERNLOHR_PREFIX
+BERNLOHR_IACT_PREFIX = libbern_a-
+BERNLOHR_IACT_PREFIX = libiact_a-
+else
+BERNLOHR_IACT_PREFIX = 
+BERNLOHR_IACT_PREFIX = 
+endif
+BERNLOHR_DIR = $(CORSIKA_DIR)/bernlohr
+FLUKA_DIR = $(HOME)/CORSIKA/flukapro
+
+# -----------------------------------------------------------------------------
+# Compiler/Linker Options
+# -----------------------------------------------------------------------------
+
+################################## INTEL C++ ##################################
+#CXX = /opt/intel_cc_80/bin/icc
+#CXXFLAGS = -g -xN -O3 -Wall $(INCLUDE_DIRS)
+#LDFLAGS = -static -g -Kc++ -xN -O3 -Wall $(LIB_DIRS)
+
+################################### GNU C++ ###################################
+
+ifndef OPTFLAGS
+OPTFLAGS = -O3 -g
+endif
+
+ifndef CXX
+CXX = g++
+CC = gcc
+LD = g++
+endif
+CXXFLAGS = $(OPTFLAGS) -Wall $(CHILADEFFLAGS) $(CHILACFLAGS) $(VERITASCFLAGS)
+LDFLAGS = $(CHILALDFLAGS) $(VERITASLDFLAGS)
+#CXXFLAGS = -g -fno-default-inline -fno-inline -m32 -Wall $(INCLUDE_DIRS) $(DEFINES)
+#LDFLAGS = -static -g -fno-default-inline -fno-inline -m32 -Wall $(LIB_DIRS)
+#LDFLAGS = -g -fno-default-inline -fno-inline -m32 -Wall $(LIB_DIRS)
+
+# -----------------------------------------------------------------------------
+# Other Libraries 
+# -----------------------------------------------------------------------------
+
+ifdef MYSQLOLD
+MYSQLINC = $(shell mysql_config --cflags)
+else
+MYSQLINC = $(shell mysql_config --include)
+endif
+MYSQLLIBS = $(shell mysql_config --libs)
+MYSQLLIBS_STATIC = -Wl,-\( $(shell mysql_config --libs) -lkrb5 -lk5crypto -lkrb5support -lcom_err -lresolv -lpthread -ldl -Wl,-\)
+
+ifdef HDF5DIR
+CHILACFLAGS += -I$(HDF5DIR)/include -L$(HDF5DIR)/lib
+CHILALDFLAGS += -L$(HDF5DIR)/lib
+endif
+
+H5LIBS = -lhdf5 -lz 
+
+
+
+
+
+

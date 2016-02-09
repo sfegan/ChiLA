@@ -1,0 +1,124 @@
+#!/bin/bash 
+
+#-*-mode:shell-script; mode:font-lock;-*-
+
+#
+# \author     Stephen Fegan               \n
+#             UCLA                        \n
+#             sfegan@astro.ucla.edu       \n        
+#
+# \version    0.1
+# \date       08/19/2005
+
+#
+# COMMAND LINE OPTIONS
+#
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/u/home4/mdwood/lib:/u/home4/mdwood/lib/mysql
+
+DATABASE=$1
+
+#
+# ARCHITECTURE AND NODE VARIABLES
+#
+
+ARCH=`uname -m`
+NODE=`hostname -s`
+
+#
+# CODE AND TEMPORARY LOCATION VARIABLES
+#
+
+VSDB_HOST=vraid
+VSDB_USER=mdwood
+
+TMPDIR=/work/mdwood
+RUNBASE=/work/mdwood
+
+CODE_DIRECTORY=/u/home4/mdwood/VS/Code/${NODE}
+
+if [ "${LOCALTEST}" == "true" ]
+then
+  TMPDIR=/tmp
+  CODE_DIRECTORY=/home/mdwood/ChiLA/VSBin
+  RUNBASE=/tmp
+  
+  VSDB_HOST=""
+  VSDB_USER=""
+  VSDB_PASS=""
+fi
+
+export TMPDIR
+export VSDB_HOST
+export VSDB_USER
+
+#
+# MISC VARIABLES
+#
+
+#CODE_DIRECTORY=/u/work/fegan/ChiLA/Code/${ARCH}
+#CODE_DIRECTORY=/home/sfegan/Simulations/Components/VSBin
+
+CORSIKA=${CODE_DIRECTORY}/corsika
+MAKE_STEERING=${CODE_DIRECTORY}/make_steering
+MANAGE_SIMDB=${CODE_DIRECTORY}/manage_simdb
+RAYTRACE=${CODE_DIRECTORY}/raytrace_corsika_to_simdb
+
+
+#
+# MAKE TEMPORARY DIRECTORY BASE
+#
+
+if [ ! -d $RUNBASE ]; then mkdir $RUNBASE; fi
+
+#
+# MAIN LOOP
+#
+
+workunit_table=`${MANAGE_SIMDB} -get_workunit ${DATABASE}`
+while [[ "$workunit_table" != "" ]]
+do
+    # REGISTER WORKUNIT START
+    workunit_run_id=`${MANAGE_SIMDB} -start_workunit_run ${DATABASE} ${workunit_table} "${HOSTNAME}" "${JOB_ID}"`
+
+    # MAKE TEMPORARY DIRECTORY
+    RUNDIR=`mktemp -d $RUNBASE/vs_run.XXXXXXXXXX`
+    cd $RUNDIR
+
+    # MAKE STEERING FILE
+    ${MAKE_STEERING} -INIT -db ${DATABASE} -table ${workunit_table} > steering.dat
+
+    # OUTPUT FILE
+    telfil=`awk '$1=="TELFIL"{print $2}' steering.dat | sed -e "s/^.//;s/.$//"`
+
+    # RUN CORSIKA
+    ${CORSIKA} < steering.dat
+
+    # PROCESS OPTICS
+    ${RAYTRACE} ${DATABASE} ${workunit_table} ${workunit_run_id} ${telfil}
+
+    # IF OUTPUT IS TO AN HDF FILE THEN COPY WORKUNIT TO DIRECTORY
+    data_storage=`${MANAGE_SIMDB} -get_parameter ${DATABASE} DataStorage mode`
+    if [ "$data_storage" == "hdf5" ]
+    then
+      target_dir=`${MANAGE_SIMDB} -get_parameter ${DATABASE} DataStorage directory`
+      target_file=`${MANAGE_SIMDB} -get_hdf_name ${workunit_run_id}`
+      cp ${target_file} ${target_dir}
+      ${MANAGE_SIMDB} -mark_all_workunit_events_as_complete \
+                      ${DATABASE} ${workunit_table} ${workunit_run_id}
+    fi
+
+    # CLEAN UP TEMPORARIES
+    cd $RUNBASE
+    rm -rf $RUNDIR
+
+    # REGISTER COMPLETION OF WORKUNIT
+    ${MANAGE_SIMDB} -finish_workunit_run ${DATABASE} ${workunit_run_id}
+
+    workunit_table=`${MANAGE_SIMDB} -get_workunit ${DATABASE}`
+done
+
+#
+# CLEAN UP
+#
+

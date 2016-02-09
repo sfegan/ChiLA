@@ -1,0 +1,13 @@
+CVS/
+Data/
+*.o
+*~
+*.so
+*.a
+StandardFiles/
+TODO
+VSElectronics/config
+VSElectronics/RandomSeeds
+VSElectronics/
+VSDataReduction/39132.cvbf
+VSDataReduction/extract_egy_kernel

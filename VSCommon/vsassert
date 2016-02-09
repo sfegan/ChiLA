@@ -1,0 +1,19 @@
+//-*-mode:c++; mode:font-lock;-*-
+
+/*! \file vsassert
+
+  Assert using throw
+
+  \author     Stephen Fegan               \n
+              UCLA                        \n
+              sfegan@astro.ucla.edu       \n
+
+  \version    1.0
+  \date       12/04/2007
+
+  $Id: vsassert,v 1.1 2007/12/04 17:15:04 sfegan Exp $
+
+*/
+
+#include<VSAssert.hpp>
+

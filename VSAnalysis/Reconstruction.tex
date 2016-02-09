@@ -1,0 +1,1338 @@
+\documentclass[letterpaper]{article}
+\usepackage{amssymb}
+\usepackage{newcent}
+\usepackage[pdftex]{graphicx}
+
+\setlength{\parindent}{0in}
+\setlength{\parskip}{1.5ex plus 0.5ex minus 0.2ex}
+
+\newlength{\sjfhmargin}
+\newlength{\sjfvmargin}
+\setlength{\sjfhmargin}{1in}
+\setlength{\sjfvmargin}{1in}
+
+\setlength{\voffset}{0in}
+\setlength{\hoffset}{0in}
+
+\setlength{\headheight}{0ex}
+\setlength{\headsep}{0in}
+\setlength{\topskip}{0in}
+%\setlength{\footskip}{0in}
+
+\setlength{\textwidth}{\paperwidth}
+\addtolength{\textwidth}{-2\sjfhmargin}
+\setlength{\evensidemargin}{-1in}
+\addtolength{\evensidemargin}{\sjfhmargin}
+\setlength{\oddsidemargin}{\evensidemargin}
+
+\setlength{\textheight}{\paperheight}
+\addtolength{\textheight}{-2\sjfvmargin}
+\addtolength{\textheight}{-\headheight}
+\addtolength{\textheight}{-\headsep}
+\addtolength{\textheight}{-\footskip}
+
+\setlength{\topmargin}{-1in}
+\addtolength{\topmargin}{\sjfvmargin}
+
+\setlength{\parindent}{0in}
+\setlength{\parskip}{1.5ex plus 0.5ex minus 0.2ex}
+
+\usepackage[round]{natbib}
+%\usepackage[numbers]{natbib}
+
+\ifx\pdfoutput\undefined \newcount\pdfoutput \fi
+\ifcase\pdfoutput
+  \special{papersize=11in,8.5in}
+\else
+  \usepackage[pdftex]{hyperref}
+  \pdfpagewidth 8.5truein
+  \pdfpageheight 11truein
+  \pdfhorigin 1truein
+  \pdfvorigin 1truein
+  \hypersetup{
+    pdfstartpage=1,
+    pdftitle={Event reconstruction and parameterization for VERITAS},
+    pdfsubject={Reconstruction algorithms and parameterization schemes for VERITAS events. Original filename is Reconstruction.pdf},
+    pdfkeywords={reconstruction,parameterization},
+    pdfauthor={\textcopyright\ Vladimir Vassiliev and Stephen Fegan},
+    pdfcreator={\LaTeX\ with package \flqq hyperref\frqq}
+  }
+  \pdfinfo{/CreationDate (D:20051220090000)}
+\fi
+
+\bibliographystyle{plainnat}
+
+\begin{document}
+\title{Event reconstruction and parameterization for VERITAS}
+\date{2005-12-20}
+\author{Vladimir Vassiliev\\
+vvv@astro.ucla.edu \and
+Stephen Fegan\\
+sfegan@astro.ucla.edu }
+\maketitle
+	
+\begin{abstract}
+The first part of this memo documents algorithms which can be used to
+reconstruct the arrival direction and impact point of $\gamma$-rays
+using an array of Imaging Atmospheric Cherenkov Telescopes. These
+algorithms were developed and used in modified form during the work on
+the VERITAS proposal\footnote{No references to original work are given
+as they were not published at that time. The people who primarily
+contributed were M.\ Hillas, G.\ Sembroski, and V.\ Vassiliev.}. In
+the second part of the memo we discuss parameters which may be useful
+in the rejection of background events and estimation of primary
+energy. Although this memo presents only the mathematical details of
+these algorithms and parameters, we plan to present the results of
+simulation studies in a follow-up memo. These methods and parameters
+provide the basis of an event reconstruction and identification code
+which is being developed at UCLA.
+\end{abstract}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% SECTION 1 -- DEFINITIONS AND NOTATION
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Definitions and notation}
+
+Greek indices ($\alpha,\beta,\gamma$) denote components of vectors and
+whenever they are repeated we assume summation. Roman indices ($i,j$)
+are used to identify telescopes or pixels and if summation is
+required, it is explicitly specified.
+
+\subsection{Telescope notation and parameters}
+
+$\displaystyle i$ -- telescope index.
+
+$\displaystyle \vec{r}^{i}$ -- radius vector to the telescope location.
+
+$\displaystyle \vec{e}^{i}$ -- unit vector parallel to the telescope 
+optical axis.
+
+$\displaystyle E_{\alpha \beta }^{i}=
+\delta_{\alpha \beta }-e_{\alpha }^{i}e_{\beta }^{i}$ -- 
+projection operator orthogonal to $\vec{e}^{i}$, and as such
+$\displaystyle E_{\gamma \alpha }^{i}E_{\gamma \beta
+}^{i}=E_{\alpha \beta }^{i}$.
+
+\subsection{Reference frame notation and parameters}
+
+All of the methods presented in this paper consist of vector and
+tensor relationships and are inherently independent of the coordinate
+system used. However, for better accuracy of calculations an
+\textit{event reference frame} (ERF) is introduced in which one
+coordinate axis is aligned along a ``mean optic axis'' of all
+telescopes participating in the event.
+
+We assume that the vectors $\vec{e}^{i}$ and $\vec{r}^{i}$ are
+originally defined in a global reference frame (GRF), e.g. with $+x$
+(East), $+y$ (North) $+z$ (Up). The ERF is defined by the basis
+vectors:
+
+$\displaystyle \left\{\begin{array}{lll}
+\vec{\psi}=\frac{1}{\sqrt{\vec{\Psi}\cdot\vec{\Psi}}}\vec{\Psi}, 
+& \mathrm{where} & \vec{\Psi}=\sum\limits_{i}N^{i}\vec{e}^{i} \\ 
+\vec{\phi}=\frac{1}{\sqrt{\vec{\Phi}\cdot\vec{\Phi}-
+(\vec{\psi}\cdot\vec{\Phi})^2}}
+\left(\vec{\Phi}-(\vec{\psi}\cdot\vec{\Phi})\right)\vec{\psi},
+& \mathrm{where} & \vec{\Phi}=\sum\limits_{i}N^{i}\vec{r}^{i} \\
+\vec{\varphi}=\vec{\psi}\times \vec{\phi}.
+\end{array}
+\right.$,
+
+where $N^i$, the total signal detected by telescope $i$, is defined in
+the next section.
+
+If the optic axes of all telescopes in the event are co-aligned, then
+the ``mean optic axis'', $\vec{\psi}$, coincides with this common
+direction. In all considerations below we assume that all vectors and
+tensors are specified in the ERF and an orthogonal transformation
+operator $U_{\alpha\beta}$ between the GRF and ERF, as defined by
+$(\vec{\phi}, \vec{\varphi}, \vec{\psi})$, can be calculated and
+applied as necessary.
+
+\subsection{Detected photon distribution parameters}
+
+$\displaystyle j$ -- pixel index.
+
+$\displaystyle n^{ij}$ -- number of photoelectrons in pixel $j$ of 
+telescope $i$.
+
+$\displaystyle \vec{p}^{ij}$ -- vector giving the location of pixel
+$j$ in telescope $i$ relative to the center of the field of view of
+the telescope. Since the pixels lie in a plane perpendicular to the
+optic axis of the telescope, $\vec{p}^{ij}\cdot\vec{e}^i=0\,,\forall\,
+i,j$. The following work assumes that the location vector is expressed
+in radians.
+
+$\displaystyle N^{i}=\sum\limits_{j}n^{ij}$ -- zero moment (image
+size scalar).
+
+$\displaystyle V_{\alpha }^{i}=
+\frac{1}{N^{i}}\sum\limits_{j}n^{ij}p_{\alpha }^{ij}$ --
+first moment (image centroid vector).
+
+Since $p_{\beta}^{ij}e_{\beta}^{i}=0\,,\forall\,i,j$, it can be seen
+that $V_{\alpha}^{i}e_{\alpha }^{i}=0$.
+
+$\displaystyle T_{\alpha_{\beta }}^{i}=
+\frac{1}{N^{i}}\sum\limits_{j}n^{ij}p_{\alpha}^{ij}p_{\beta }^{ij}$  --
+second moments (image quadrapole tensor). 
+
+As in the first moments, $T_{\alpha_{\beta}}^{i}e_{\alpha }^{i}=0$.
+
+\subsection{Event parameters}
+
+$\displaystyle \vec{e}$ -- primary arrival direction, calculated during
+reconstruction.
+
+$\displaystyle \vec{R}$ -- primary radius vector, calculated during
+reconstruction.
+
+$\displaystyle t\vec{e}+\vec{R}$ -- primary trajectory in 3D as a 
+function of the parameter $t$.
+
+\section{Event Reconstruction}
+
+In this section we describe three methods for stereoscopic
+reconstruction of the arrival direction and core location of the
+primary. All three methods are independent of the details of atmospheric 
+cascade development and make use of only geometrical assumptions. 
+In the first, the observations by different telescopes are
+treated independently. Each telescope measurement constrains the
+primary to an event-telescope plane. These constraints are later
+combined to determine the event parameters. In the second method, the
+shower core location and direction is determined by simultaneously
+fitting the telescope event planes. Mathematically, this procedure is
+accomplished in the focal planes of the telescopes, and in this sense, the
+procedure operates in a two dimensional projection of three
+dimensional space. The third method utilizes back-propagation of all
+the detected photons to simultaneously determine the primary core
+location and arrival direction in three dimensional space. The third
+method is adjacent to the second in the sense that it operates with
+lines (1D objects) in 3D space, while the second operates with planes
+(2D objects) in 3D space. 
+
+In the first method the optimum solution can be explicitly found. In
+methods two and three the problem is reduced to a two dimensional
+optimization, even though the full phase-space of the reconstruction
+is four dimensional. In method two the optimization is performed in
+the phase space of the core location, while the optimum arrival
+direction is analytically solved. In method three the situation is
+reversed, the optimization is done over arrival direction with the
+optimum core location explicitly derived.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% SECTION 2.1 -- METHOD I -- INDEPENDENT TELESCOPES
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Method I -- Independent telescopes}
+
+In this method, the shower axes are calculated independently for each
+telescope image and used in two $\chi^2$-like functionals, which can be
+explicitly minimized to give the arrival direction and impact point of
+the primary.
+
+The vector describing the emission point along the hypothetical
+trajectory of the primary, as viewed by telescope $i$, is given by,
+
+$\displaystyle \vec{L}=t\vec{e}-(\vec{r}^{i}-\vec{R})$ or 
+$\displaystyle \frac{1}{t}\vec{L}=\vec{e}-\frac{1}{t}(\vec{r}^{i}-\vec{R})$.
+
+This vector, when projected onto the focal plane, produces a line
+which can be described (to leading order) in terms of a parameter,
+$\vartheta$, as,
+
+$\displaystyle \vec{\xi}^{i}+\frac{1}{\vartheta}\vec{\rho}^{i}$, 
+
+where $\vec{\xi}^{i}=\vec{e}-(\vec{e}\cdot\vec{e}^{i})\vec{e}^{i}$ is the
+projection of $\vec{e}$ onto the focal plane of telescope $i$,
+$\xi_{\alpha }^{i}=(\delta_{\alpha\beta}-e_{\alpha}^{i}e_{\beta}^{i})
+e_{\beta}= E_{\alpha\beta}^{i}e_{\beta}$, and $\displaystyle
+\rho_{\alpha}^{i}= E_{\alpha\beta}^{i}(r_{\beta}^{i}-R_{\beta})$ is
+the projection of the vector describing the position of the telescope
+relative to the primary trajectory onto the telescope focal plane.
+
+The vector $\vec{\xi}^{i}$ determines the arrival direction of the
+primary on the focal plane of telescope $i$, and $\vec{\kappa}^{i}=
+\frac{1}{\sqrt{\vec{\rho}^{i}\cdot\vec{\rho}^{i}}}\vec{\rho}^{i}$ 
+determines a unit vector of the main axis of the image.
+
+The line on the focal plane along the main axis of the image is
+given by
+
+$\displaystyle \vec{\varkappa}^{i}+d^{i}\vec{\kappa}^{i}$, 
+
+where $d^{i}$ is a parameter and $\vec{\varkappa}^{i}$ can be chosen
+orthogonal to $\vec{\kappa}^{i}$, 
+$\vec{\varkappa}^{i}\cdot\vec{\kappa}^{i}=0$.
+
+The vector describing the shortest distance to this line from a pixel at
+$\vec{p}^{ij}$ is
+
+$\displaystyle \vec{\Delta}^{ij}=
+\left(\vec{\varkappa}^{i}-\vec{p}^{ij}\right) -
+\left((\vec{\varkappa}^{i}-\vec{p}^{ij})\cdot\vec{\kappa}^{i}\right) 
+\vec{\kappa}^{i}$, or equivalently $\Delta^{ij}_{\alpha}=
+\left(\delta_{\alpha \beta }-\kappa_{\alpha}^{i}\kappa_{\beta }^{i}\right) 
+\left(\varkappa_{\beta }^{i}-p_{\beta}^{ij}\right)$.
+
+We define $\chi^{2i}$ for each telescope $i$ as the total weighted
+square distance from each pixel in the image to the axis:
+
+$\displaystyle \begin{array}{lll}
+\chi^{2i} & = & 
+\sum\limits_{j}n^{ij}\left(\vec{\Delta}^{ij}\cdot\vec{\Delta}^{ij}\right) \\
+& = & \sum\limits_{i,j}n^{ij}
+\left(\delta_{\alpha \beta }-\kappa_{\alpha}^{i}\kappa_{\beta }^{i}\right) 
+\left(\varkappa_{\alpha}^{i}-p_{\alpha}^{ij}\right)
+\left(\varkappa_{\beta }^{i}-p_{\beta}^{ij}\right) \\
+& = & \left(\delta_{\alpha\beta }-\kappa_{\alpha}^{i}\kappa_{\beta}^{i}\right)
+\sum\limits_{j}n^{ij}\left(\varkappa_{\alpha}^{i}\varkappa_{\beta }^{i}
+-p_{\alpha}^{ij}\varkappa_{\beta}^{i}-\varkappa_{\alpha}^{i}p_{\beta}^{ij}
++p_{\alpha }^{ij}p_{\beta}^{ij}\right) \\
+& = & N^{i}\left(\delta_{\alpha\beta}
+-\kappa_{\alpha}^{i}\kappa_{\beta}^{i}\right)
+\left(\varkappa_{\alpha }^{i}\varkappa_{\beta}^{i}
+-V_{\alpha}^{i}\varkappa_{\beta }^{i}
+-V_{\beta}^{i}\varkappa_{\alpha}^{i}+T_{\alpha_{\beta}}^{i}\right)
+\end{array}$.
+
+The $\chi^{2i}$-like functional can be explicitly minimized with respect to
+$\varkappa _{\mu }^{i}$, giving
+
+$\displaystyle \left(\delta_{\alpha\beta}
+-\kappa_{\alpha}^{i}\kappa_{\beta}^{i}\right)
+\left(\varkappa_{\alpha }^{i}\delta_{\beta \mu }
++\varkappa_{\beta}^{i}\delta_{\alpha\mu }-V_{\alpha}^{i}\delta_{\beta\mu}
+-V_{\beta}^{i}\delta_{\alpha\mu}\right)
+=2\varkappa_{\mu}^{i}-2\left(\delta_{\alpha\mu}
+-\kappa_{\alpha}^{i}\kappa_{\mu }^{i}\right)
+V_{\alpha }^{i}=0$, and
+
+$\varkappa_{\mu}^{i}=\left(\delta_{\alpha\mu}
+-\kappa_{\alpha}^{i}\kappa_{\mu}^{i}\right)V_{\alpha}^{i}$.
+
+Because
+$\left(\delta_{\alpha\beta}-\kappa_{\alpha}^{i}\kappa_{\beta}^{i}\right)$
+is a projection operator onto sub-space perpendicular to
+$\vec{\kappa}^{i}$ any power of it is equal to the same operator. 
+Using this property and substituting $\varkappa _{\mu }^{i}$ in $\chi
+^{2i}$ we find:
+
+$\displaystyle \chi^{2i}
+=N^{i}\left(\delta_{\alpha\beta}-\kappa_{\alpha}^{i}\kappa_{\beta}^{i}\right)
+\left(T_{\alpha_{\beta}}^{i}-V_{\alpha}^{i}V_{\beta}^{i}\right)$.
+
+The problem of minimizing $\chi^{2i}$ with respect to
+$\vec{\kappa}^{i}$, subject to the constraint that
+$\vec{\kappa}^{i}\cdot\vec{\kappa}^{i}=1$, through the introduction of
+a Lagrange multiplier, is equivalent to finding the eigenvalues and
+eigenvectors of the matrix
+$T_{\alpha_{\beta}}^{i}-V_{\alpha}^{i}V_{\beta}^{i}$. We denote the
+eigenvalues and eigenvectors of this matrix as
+$\left(l_{i}^{2},\vec{\kappa}^{i}\right)$,
+$\left(w_{i}^{2},\vec{\varrho}^{i}\right)$, and
+$\left(0,\vec{e}^{i}\right)$. The matrix
+$T_{\alpha_{\beta}}^{i}-V_{\alpha}^{i}V_{\beta}^{i}$ gives the second
+central moments of the image $i$, and has eigenvalues equal to
+$w_{i}^{2}$, $l_{i}^{2}$, the ``width'' and ``length'' in square
+$\left(l_{i}^{2}>w_{i}^{2}>0\right)$. In the solution given earlier,
+$\vec{\varkappa}^{i}$ can be expressed in terms of $\vec{\varrho}^{i}$
+as $\varkappa_{\mu}^{i}=\left(\delta_{\alpha\mu}
+-\kappa_{\alpha}^{i}\kappa_{\mu}^{i}\right)V_{\alpha}^{i}
+=\varrho_{\alpha}^{i}V_{\alpha}^{i}\varrho_{\mu}^{i}$.
+
+In the absence of statistical fluctuations,
+$E_{\alpha\beta}^{i}(r_{\beta}^{i}-R_{\beta})=d^{i}\kappa_{\alpha}^{i}$,
+where $d^{i}$ is some proportionality constant. However, this equality
+is not exact in the presence of fluctuations, and the distance of the
+closest approach to the origin is given by:
+
+$\displaystyle 
+\Delta_{\alpha}^i = E_{\alpha\beta}^{i}(r_{\beta}^{i}-R_{\beta})-E_{\mu
+\beta}^{i}(r_{\beta}^{i}-R_{\beta})\kappa_{\mu}^{i}\kappa_{\alpha}^{i}
+= \left(E_{\alpha\beta}^{i}-E_{\mu\beta}^{i}
+\kappa_{\mu}^{i}\kappa_{\alpha}^{i}\right)(r_{\beta}^{i}-R_{\beta})
+%& = & \left(E_{\alpha\beta}^{i}-\kappa_{\beta}^{i}
+%\kappa_{\alpha}^{i}\right)(r_{\beta}^{i}-R_{\beta})
+= E_{\alpha\gamma}^{i}\left(\delta_{\gamma\beta}
+-\kappa_{\gamma}^{i}\kappa_{\beta}^{i}\right)(r_{\beta}^{i}-R_{\beta})$.
+
+Double projection means that only the component along the ``width''
+eigenvector is relevant and the distance of closest approach to the
+origin can be rewritten as
+$\varrho_{\alpha}^{i}\varrho_{\beta}^{i}(r_{\beta}^{i}-R_{\beta})$. It
+is natural then to construct a $\chi^{2}$-like functional to determine the
+core position as,
+
+$\displaystyle \chi_{R}^{2}
+=\sum\limits_{i}N^{i}\Delta_{\alpha}^i\Delta_{\alpha}^i
+=\sum\limits_{i}N^{i}\varrho_{\alpha}^{i}\varrho_{\beta}^{i}(r_{\beta}^{i}
+-R_{\beta})(r_{\alpha}^{i}-R_{\alpha})$.
+
+If the eigenvalues, $l_{i}^{2},w_{i}^{2}$, are only marginally
+different, the main axis of the image is degenerate and it might be
+advisable to exclude the image from considerations with this
+method\footnote{Consult with G.~Sembroski on an appropriate
+cuts.}. Processing of very dim images utilizing this method might also
+be inappropriate for this reason. On the other hand, intuitively,
+images with smaller width should have some enhancement of their
+importance. One suggestion to account for this, although not a unique
+one, is to weight the functional as,
+
+$\displaystyle
+\chi_{R}^{2}=\sum\limits_{i}N^{i}\frac{l_{i}^{2}-w_{i}^{2}}{w_{i}^{2}}
+\varrho_{\alpha}^{i}\varrho_{\beta}^{i}(r_{\beta}^{i}-R_{\beta
+})(r_{\alpha}^{i}-R_{\alpha})$
+
+If we define
+
+$\displaystyle Y_{\alpha\beta}
+=\sum\limits_{i}N^{i}\frac{l_{i}^{2}-w_{i}^{2}}{w_{i}^{2}}
+\varrho_{\alpha}^{i}\varrho_{\beta}^{i}$,
+
+$\displaystyle
+F_{a}=\sum\limits_{i}N^{i}\frac{l_{i}^{2}-w_{i}^{2}}{w_{i}^{2}}
+\varrho_{\alpha}^{i}\varrho_{\beta}^{i}r_{\beta}^{i}$,
+
+$\displaystyle
+S=\sum\limits_{i}N^{i}\frac{l_{i}^{2}-w_{i}^{2}}{w_{i}^{2}}
+\varrho_{\alpha}^{i}\varrho_{\beta}^{i}r_{\beta}^{i}r_{\alpha}^{i}$, and
+
+$\displaystyle N=\sum\limits_{i}N^{i}\frac{l_{i}^{2}-w_{i}^{2}}{w_{i}^{2}}$,
+
+then $\chi_{R}^{2}=Y_{\alpha \beta }R_{\beta }R_{\alpha}-2F_{a}R_{\alpha }+S$.
+
+Minimizing $\chi_{R}^{2}$, the core position is determined through the
+relationship $\displaystyle Y_{\alpha \beta }R_{\beta }=F_{a}$.
+
+The matrix $Y_{\alpha\beta}$ is almost degenerate. In fact, if all
+$\vec{e}^{i}$ are equal, then $Y_{\alpha\beta}e_{\beta}^{i}=0$ and
+$\vec{R}$ is not constrained along the arrival direction of the
+primary. In reality one has to find the two eigenvectors corresponding
+to the two largest eigenvalues of $Y_{\alpha\beta}$ and use these
+vectors to constrain $\vec{R}$ in the plane that they form. The
+projection of $\vec{R}$ on the direction perpendicular to this plane
+is arbitrary, and can be set to zero. The estimator
+
+$\displaystyle w_{R}^{2}=\frac{S-Y_{\alpha\beta}R_{\beta}R_{\alpha}}{N}
+=\frac{S-F_{\alpha}R_{\alpha}}{N}$
+
+can be viewed then as a measure of the accuracy of the fit of the core
+or as an effective ``shape'' cut parameter. It can be further used in
+an analogous way to the frequently referenced ``mean scaled width''
+parameter, once the geometry of the event and its energy are fully
+determined, and may provide additional background rejection.
+
+The eigenvalues of the matrix 
+
+$\displaystyle \frac{1}{\chi_R^2}\frac{\partial^2\chi_R^2}
+{\partial R_\alpha\partial R_\beta} = \frac{Y_{\alpha\beta}}{\chi_R^2}$
+
+give a measure of the curvature of the functional at its minimum. If
+these are written as $(\lambda_1, \lambda_2, \lambda_3)$ with
+$\lambda_3>\lambda_2>\lambda_1 \approx 0$, then
+$(1/\sqrt{\lambda_2},1/\sqrt{\lambda_3})=(\delta R_l, \delta R_w)$
+provide a measure of the semi-major and semi-minor axes of the
+ellipse 
+
+$\displaystyle 
+\frac{\Delta R_l^2}{\lambda_2}  + \frac{\Delta R_w^2}{\lambda_3} = 1$
+
+describing a contour of constant likelihood in the estimate of core
+position. The confidence level on this contour could be calibrated
+through simulations. Further discussion is presented in Section~3.
+
+A similar procedure can be performed to determine the arrival
+direction of the primary, which is constrained by the requirement that
+the arrival origin, when projected onto the focal plane, is located on
+the main axis of the image. Mathematically this corresponds to finding
+some parameter value $d^{i}$ in the equation,
+
+$\displaystyle E_{\alpha\beta}^{i}e_{\beta}=\varrho_{\alpha}^{i}\varrho_{\beta
+}^{i}V_{\beta}^{i}+d^{i}\kappa_{\alpha}^{i}$.
+
+Again, in the absence of statistical fluctuations, the distance of the
+closest approach to the true origin is given 
+by\footnote{Using the properties of the projection operator repeatedly}
+
+$\displaystyle \Delta_{\alpha}^i=\left(\delta_{\alpha\gamma}
+-\kappa_{\alpha}^{i}\kappa_{\gamma}^{i}\right)
+\left(E_{\gamma\beta}^{i}e_{\beta}
+-\varrho_{\gamma}^{i}\varrho_{\beta}^{i}V_{\beta}^{i}\right)
+=\varrho_{a}^{i}\varrho_{\beta}^{i}\left(e_{\beta}-V_{\beta}^{i}\right)$
+
+and an appropriate $\chi^{2}$-like functional can be constructed as,
+
+$\displaystyle \chi_{e}^{2}
+=\sum\limits_{i}N^{i}\frac{l_{i}^{2}-w_{i}^{2}}{w_{i}^{2}}
+\varrho_{\alpha}^{i}\varrho_{\beta}^{i}\left(e_{\beta}-V_{\beta}^{i}\right)
+\left(e_{\alpha}-V_{\alpha}^{i}\right)$.
+
+Defining the following,
+
+$\displaystyle Y_{\alpha\beta}=\sum\limits_{i}N^{i}\frac{l_{i}^{2}
+-w_{i}^{2}}{w_{i}^{2}}\varrho_{\alpha}^{i}\varrho_{\beta}^{i}$
+(as before),
+
+$\displaystyle \digamma_{\alpha}=\sum\limits_{i}N^{i}\frac{l_{i}^{2}
+-w_{i}^{2}}{w_{i}^{2}}\varrho_{\alpha}^{i}\varrho_{\beta}^{i}V_{\beta}^{i}$,
+and
+
+$\displaystyle \Xi=\sum\limits_{i}N^{i}\frac{l_{i}^{2}-w_{i}^{2}}{w_{i}^{2}}
+\varrho_{\alpha}^{i}\varrho_{\beta}^{i}V_{\alpha}^{i}V_{\beta}^{i}$,
+
+requires $\chi_e^{2}
+=Y_{\alpha\beta}e_{\alpha}e_{\beta}-2\digamma_{\alpha}e_{\alpha}+\Xi$.
+
+Minimization with respect to the arrival direction gives
+$\displaystyle Y_{\alpha\beta}e_{\alpha}=\digamma_{\alpha }$.
+
+As was previously noted, the matrix $Y_{\alpha\beta}$ doesn't
+constrain the arrival direction along eigenvector corresponding to the
+smallest eigenvalue. If all $\vec{e}^{i}$ are equal then
+$Y_{\alpha\beta}e_{\beta }^{i}=0$. The third component of $\vec{e}$
+can be simply recovered from the normalization condition, if the units of
+measurement of pixel coordinates were given in radians, as discussed
+in Section~1. The value of the functional,
+
+$\displaystyle w_{e}^{2}=\frac{\Xi-Y_{\alpha\beta}e_{\alpha}e_{\beta}}{N}
+=\frac{\Xi-\digamma_{\alpha}e_{\alpha}}{N}$
+
+gives a measure of the accuracy of determination of arrival direction
+and can be utilized in a ``mean scaled width'' analysis, if desired.
+Again, the eigenvalues of the matrix $Y_{\alpha\beta}/\chi_e^{2}$ give
+an estimate of the semi-major and semi-minor axes of the ellipse of
+uncertainty in the arrival direction.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% SECTION 2.2 -- METHOD II -- 2D IN FOCAL PLANE OF TELESCOPES
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Method II -- 2D simultaneously in focal planes of telescopes}
+
+As in Method I, the parametric definition of the primary trajectory
+projected onto the focal plane of telescope $i$ is,
+$\vec{\xi}^{i}+\frac{1}{\vartheta}\vec{\rho}^{i}$, where
+$\displaystyle \vec{\xi}^{i}=\vec{e}-\left(\vec{e},\vec{e}^{i}\right)
+\vec{e}^{i}$ is the projection of $\vec{e}$ onto the focal plane,
+
+$\displaystyle \xi_{\alpha}^{i}=e_{\alpha}-e_{\beta}e_{\alpha
+}^{i}e_{\beta}^{i}=\left(\delta_{\alpha\beta}
+-e_{\alpha}^{i}e_{\beta}^{i}\right)e_{\beta}=E_{\alpha\beta}^{i}e_{\beta}$,
+and
+
+$\displaystyle \rho_{\alpha}^{i}
+=E_{\alpha\beta}^{i}(r_{\beta}^{i}-R_{\beta})$
+
+is the projection of the vector describing the position of the
+telescope relative to the shower core onto the telescope focal plane.
+
+The vector $\vec{\xi}^{i}$ determines the arrival direction of the
+primary on the focal plane of the telescope $i$, and vector
+$\vec{\rho}^{i}$ is directed along the main axis of the image. The
+vector describing the shortest distance from a given pixel $j$ of
+telescope $i$ to the main axis of the image is therefore
+
+$\displaystyle\vec{\Delta}^{ij}
+=\left(\vec{\xi}^{i}-\vec{p}^{ij}\right)-
+\frac{1}{\vec{\rho}^{i}\cdot\vec{\rho}^{i}}
+\left((\vec{\xi}^{i}-\vec{p}^{ij})\cdot\vec{\rho}^{i}\right)
+\vec{\rho}^{i}$,
+
+and the square of the distance is
+
+$\displaystyle \vec{\Delta}^{ij}\cdot\vec{\Delta}^{ij}
+=\left((\vec{\xi}^{i}-\vec{p}^{ij})\cdot(\vec{\xi}^{i}-\vec{p}^{ij})\right)
+-\frac{1}{\vec{\rho}^{i}\cdot\vec{\rho}^{i}}
+\left((\vec{\xi}^{i}-\vec{p}^{ij})\cdot\vec{\rho}^{i}\right)^{2}$.
+
+The square distances from all pixels, weighted by the number of
+photoelectrons in the pixel, 
+%(or alternatively as described in Section~4)
+are used to form a $\chi^{2}$-like functional which can be
+minimized to reconstruct the primary trajectory,
+
+$\displaystyle\chi_{2D}^{2}
+=\sum\limits_{i,j}n^{ij}\left(\vec{\Delta}^{ij}\cdot\vec{\Delta}^{ij}\right)
+=\sum\limits_{i,j}n^{ij}\left(\delta_{\alpha\beta}
+-\frac{\rho_{\alpha}^{i}\rho_{\beta}^{i}}
+{\rho_{\gamma}^{i}\rho_{\gamma}^{i}}\right)
+\left(\xi_{\alpha}^{i}-p_{\alpha}^{ij}\right)
+\left(\xi_{\beta}^{i}-p_{\beta}^{ij}\right)$.
+
+The sum is taken over all telescopes and over all pixels in every
+image. Several mathematical simplifications can be made,
+
+$\displaystyle \begin{array}{lll}
+\chi_{2D}^{2} & = & \sum\limits_{i,j}n^{ij}\left(\delta_{\alpha\beta}
+-\frac{\rho_{\alpha}^{i}\rho_{\beta}^{i}}
+{\rho_{\gamma}^{i}\rho_{\gamma}^{i}}\right)
+\left(\xi_{\alpha}^{i}\xi_{\beta}^{i}-p_{\alpha}^{ij}\xi_{\beta}^{i}
+-p_{\beta}^{ij}\xi_{\alpha}^{i}+p_{\alpha}^{ij}p_{\beta}^{ij}\right) \\
+& = & \sum\limits_{i}\left(\delta_{\alpha\beta}-
+\frac{\rho_{\alpha}^{i}\rho_{\beta}^{i}}
+{\rho_{\gamma}^{i}\rho_{\gamma}^{i}}\right)N^{i}
+\left(\xi_{\alpha}^{i}\xi_{\beta}^{i}-V_{\alpha}^{i}\xi_{\beta}^{i}-
+V_{\beta}^{i}\xi_{\alpha}^{i}+T_{\alpha_{\beta}}^{i}\right) \\
+& = & \sum\limits_{i}\left(\delta_{\alpha\beta}
+-\frac{E_{\alpha\mu}^{i}(r_{\mu}^{i}-R_{\mu})
+E_{\beta\nu}^{i}(r_{\nu}^{i}-R_{\nu})}
+{(r_{\eta}^{i}-R_{\eta})E_{\eta\kappa}^{i}
+(r_{\kappa}^{i}-R_{\kappa})}\right) N^{i} \cdots \\
+ & & \cdots
+\left(E_{\alpha\omega}^{i}e_{\omega}E_{\beta\upsilon}^{i}e_{\upsilon}
+-E_{\alpha\omega}^{i}V_{\omega}^{i}E_{\beta\upsilon}^{i}e_{\upsilon}
+-E_{\beta\upsilon}^{i}V_{\upsilon}^{i}E_{\alpha\omega}^{i}e_{\omega}
++E_{\alpha\omega}^{i}E_{\beta\upsilon}^{i}T_{\omega\upsilon}^{i}\right)
+\end{array}$,
+
+where the properties that 
+$V_{\alpha}^{i}=E_{\alpha\omega}^{i}V_{\omega}^{i}$, and 
+$T_{\alpha_{\beta}}^{i}=E_{\alpha\omega}^{i}E_{\beta\upsilon}^{i}
+T_{\omega\upsilon}^{i}$ were used. Therefore,
+
+$\displaystyle \begin{array}{lll}
+\chi_{2D}^{2} & = & \sum\limits_{i}
+\left(\delta_{\alpha\beta}-\frac{E_{\alpha\mu}^{i}(r_{\mu}^{i}
+-R_{\mu})E_{\beta\nu}^{i}(r_{\nu}^{i}-R_{\nu})}
+{(r_{\eta}^{i}-R_{\eta})E_{\eta\kappa}^{i}(r_{\kappa}^{i}-R_{\kappa})}
+\right)E_{\alpha\omega}^{i}E_{\beta\upsilon}^{i}N^{i}
+\left(e_{\omega}e_{\upsilon}-V_{\omega}^{i}e_{\upsilon}
+-V_{\upsilon}^{i}e_{\omega}+T_{\omega\upsilon}^{i}\right) \\
+& = & \sum\limits_{i}\left(E_{\alpha\beta}^{i}-
+\frac{E_{\alpha\mu}^{i}(r_{\mu}^{i}-R_{\mu})
+E_{\beta\nu}^{i}(r_{\nu}^{i}-R_{\nu})}
+{(r_{\eta}^{i}-R_{\eta})E_{\eta\kappa}^{i}(r_{\kappa}^{i}-R_{\kappa})}
+\right)N^{i}\left(e_{\alpha}e_{\beta}-V_{\alpha}^{i}e_{\beta}-
+V_{\beta}^{i}e_{\alpha}+T_{\alpha\beta}^{i}\right)
+\end{array}$.
+
+For a given radius vector $\vec{R}$ the following telescope specific
+tensor is defined,
+
+$\displaystyle Q_{\alpha\beta}^{i}(\vec{R})=E_{\alpha\beta}^{i}
+-\frac{E_{\alpha\mu}^{i}(r_{\mu}^{i}
+-R_{\mu})E_{\beta\nu}^{i}(r_{\nu}^{i}-R_{\nu})}
+{(r_{\eta}^{i}-R_{\eta})E_{\eta\kappa}^{i}(r_{\kappa}^{i}-R_{\kappa})}$.
+
+This tensor is a double projection operator, first onto a sub-space
+perpendicular to the telescope optical axis, and then to the sub-space
+simultaneously perpendicular to the $\vec{r}^{i}-\vec{R}$ vector. From
+a practical point of view it can be calculated for every $\vec{R}$ as:
+\footnote{In the case that $\vec{r}^i=\vec{R}$, i.e. when the shower
+core impacts one of the telescopes we have: $\rho_{\alpha}^{i}=0$,
+$\vec{\Delta}^{ij}=\vec{\xi}^{i}-\vec{p}^{ij}$,
+$\vec{\Delta}^{ij}\cdot\vec{\Delta}^{ij}
+=(\vec{\xi}^{i}-\vec{p}^{ij})\cdot(\vec{\xi}^{i}-\vec{p}^{ij})$ and
+$\chi_{2D}^{2}=\sum\limits_{i}E_{\alpha\beta}^{i}
+N^{i}\left(e_{\alpha}e_{\beta}-V_{\alpha}^{i}e_{\beta}-
+V_{\beta}^{i}e_{\alpha}+T_{\alpha\beta}^{i}\right)$. In this case
+$Q_{\alpha\beta}^{i}(\vec{R})=E_{\alpha\beta}^{i}=\delta_{\alpha \beta
+}-e_{\alpha }^{i}e_{\beta }^{i}$.}
+
+$\displaystyle Q_{\alpha\beta}^{i}(\vec{R})
+=\varrho_{\alpha}^{i}(\vec{R})\varrho_{\beta}^{i}(\vec{R})$,
+
+where $\vec{\varrho}^{i}=\vec{e}^{i}\times\vec{\kappa}^{i}(\vec{R})$
+and $\vec{\kappa}^{i}(\vec{R})$ is a unit vector perpendicular to
+$\vec{e}^{i}$ in the plane formed by $\vec{r}^{i}-\vec{R}$ and
+$\vec{e}^{i}$, namely
+
+$\displaystyle \kappa_{\alpha}^{i}(\vec{R})
+=\frac{E_{\alpha\beta}\left(r_{\beta}^{i}-R_{\beta}\right)}
+{\sqrt{(r_{\eta}^{i}-R_{\eta})E_{\eta\kappa}^{i}(r_{\kappa}^{i}-R_{\kappa})}}$.
+
+Once $Q_{\alpha\beta}^{i}(\vec{R})$ is found we define,
+
+$\displaystyle Y_{\alpha\beta}(\vec{R})
+=\sum\limits_{i}N^{i}Q_{\alpha\beta}^{i}(\vec{R})$,
+
+$\displaystyle F_{\alpha}(\vec{R})
+=\sum\limits_{i}N^{i}V_{\beta}^{i}Q_{\alpha\beta}^{i}(\vec{R})$,
+
+$\displaystyle S(\vec{R})
+=\sum\limits_{i}N^{i}T_{\alpha\beta}^{i}Q_{\alpha\beta}^{i}(\vec{R})$, and
+
+$\displaystyle N=\sum\limits_{i}N^{i}$,
+
+and then $\chi_{2D}^{2}=Y_{\alpha\beta}e_{\alpha}e_{\beta}
+-F_{\beta}e_{\beta}-F_{\alpha}e_{\alpha}+S 
+=Y_{\alpha\beta}e_{\alpha}e_{\beta}-2F_{\alpha}e_{\alpha}+S$.
+
+This can be explicitly minimized with respect to the primary arrival
+direction by requiring that $Y_{\alpha\beta}e_{\beta}=F_{\alpha}$.
+
+Again, the matrix $Y_{\alpha\beta}$ is nearly degenerate along
+direction of the telescope pointing. If all $\vec{e}^{i}$ are equal
+then $\vec{e}^{i}$ is eigenvector corresponding to zero eigenvalue,
+and the inverse matrix, $Y^{-1}_{\alpha\beta}$, is not defined. Thus
+the solution for $\vec{e}$ is only properly constrained in the plane
+perpendicular to the direction of the eigenvector of $Y_{\alpha\beta}$
+which corresponds to the smallest eigenvalue ($\sim0$). The projection
+onto the remaining direction should be determined from normalization
+condition, that $\vec{e}\cdot\vec{e}=1$.
+
+The value of $\chi_{2D}^{2}$ cannot be analytically minimized with
+respect to $\vec{R}$. A numerical minimization strategy, such as a
+simple grid search, should be employed. The problem is two
+dimensional, however, since the vector $\vec{R}$ is not constrained
+along the direction of the primary. Therefore during the optimization
+it needs to be scanned in the direction perpendicular to
+$\vec{e}$. The exact procedure is up to the programmer.
+
+With this minimum, the value of
+
+$\displaystyle w_{2D}^{2}(\vec{R})=\frac{\chi_{2D}^{2}}{N} =
+\frac{S(\vec{R})
+-Y_{\alpha\beta}(\vec{R})e_{\alpha}(\vec{R})e_{\beta}(\vec{R})}{N} =
+\frac{S(\vec{R})-F_{\alpha}(\vec{R})e_{\alpha}(\vec{R})}{N}$
+
+gives an effective estimate of the quality of the fit. In addition the
+curvature of the $\chi_{2D}^{2}$ functional can be calculated, giving
+estimates uncertainty on the fitted parameters (see method 1). In this
+case, the value of the curvature with respect to the arrival direction
+can be calculated explicitly:
+
+$\displaystyle \frac{1}{\chi_{2D}^2}\frac{\partial^2\chi_{2D}^2}
+{\partial e_\alpha\partial e_\beta} = \frac{Y_{\alpha\beta}}{\chi_{2D}^2}$.
+
+However the value with respect to the core location,
+
+$\displaystyle \frac{1}{\chi_{2D}^2}\frac{\partial^2\chi_{2D}^2}
+{\partial R_\alpha\partial R_\beta}$,
+
+must be estimated numerically.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% SECTION 2.3 -- METHOD III -- 3D RAY BACKPROPAGATION
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Method III -- 3D ray back-propagation}
+
+The arrival direction of the photons which were detected by pixel $j$
+is given to first order by 
+
+$\displaystyle \vec{e}^{ij}=\vec{p}^{ij}
+-\sqrt{1-\left(\vec{p}^{ij\cdot}\vec{p}^{ij}\right)}\vec{e}^{i}$. 
+
+Thus, the parametric representation of the photon trajectories is
+$\vec{r}^{i}+t^{ij}\vec{e}^{ij}$. Since information about impact point
+of photons on the reflector surface is lost, it is assumed that the
+trajectory of the photons go through the center of the telescope. The
+shortest distance between this line and the line describing the primary
+trajectory (which is $\vec{R}+t\vec{e}$) is derived by requiring that
+$\vert\vec{\Delta}^{ij}\vert^{2}=\vert\vec{r}^{i}-\vec{R}+t^{ij}\vec{e}
+^{ij}-t\vec{e}\vert^{2}$ be minimal as a function of $t^{ij}$ and
+$t$ simultaneously. This translates to the system of equations:
+
+$\displaystyle \left\{\begin{array}{l}
+t-t^{ij}(\vec{e}^{ij}\cdot\vec{e}) =\vec{e}(\vec{r}^{i}-\vec{R}) \\
+-t(\vec{e}^{ij}\cdot\vec{e})+t^{ij}=-\vec{e}^{ij}(\vec{r}^{i}-\vec{R})
+\end{array}\right.$,
+
+which can be solved to give
+
+$\displaystyle 
+\left(\begin{array}{c}t \\ t^{ij}\end{array}\right) 
+= \frac{1}{1-(\vec{e}^{ij}\cdot\vec{e})^{2}}
+\left(\begin{array}{cc}
+1 & \vec{e}^{ij}\cdot\vec{e} \\ 
+\vec{e}^{ij}\cdot\vec{e} & 1
+\end{array}\right)
+\left(\begin{array}{c}
+\vec{e}\cdot(\vec{r}^{i}-\vec{R})  \\ 
+-\vec{e}^{ij}(\vec{r}^{i}-\vec{R}) 
+\end{array}\right)$,
+
+or
+
+$\displaystyle t=\vec{\varepsilon}^{ij}(\vec{e})\cdot(\vec{r}^{i}
+-\vec{R})$, where 
+$\displaystyle \vec{\varepsilon}^{ij}(\vec{e})
+=\frac{\vec{e}-(\vec{e}^{ij}\cdot\vec{e})\vec{e}^{ij}}
+{1-(\vec{e}^{ij}\cdot\vec{e})^{2}}$, and 
+$\displaystyle \vec{\varepsilon}^{ij}\cdot\vec{e}=1$, 
+$\displaystyle \vec{\varepsilon}^{ij}\cdot\vec{e}^{ij}=0$,
+$\displaystyle \vec{\varepsilon}^{ij}\cdot\vec{\varepsilon}^{ij}
+=\frac{1}{1-(\vec{e}^{ij}\cdot\vec{e})^{2}}$,
+
+$\displaystyle t^{ij}=-\vec{\epsilon}^{ij}(\vec{e})\cdot(\vec{r}^{i}
+-\vec{R})$, where 
+$\displaystyle \vec{\epsilon}^{ij}(\vec{e})
+=\frac{\vec{e}^{ij}-(\vec{e}^{ij}\cdot\vec{e})\vec{e}}
+{1-(\vec{e}^{ij}\cdot\vec{e})^{2}}$, and 
+$\displaystyle \vec{\epsilon}^{ij}\cdot\vec{e}=0$,
+$\displaystyle \vec{\epsilon}^{ij}\cdot\vec{e}^{ij}=1$,
+$\displaystyle \vec{\epsilon}^{ij}\cdot\vec{\epsilon}^{ij}
+=\frac{1}{1-(\vec{e}^{ij}\cdot\vec{e})^{2}}$.
+
+The vectors ($\vec{\epsilon}^{ij}$, $\vec{\varepsilon}^{ij}$) span the
+sub-space defined by ($\vec{e}$, $\vec{e}^{ij}$), since
+$\vec{e}=\vec{\varepsilon}^{ij}
++(\vec{e}^{ij}\cdot\vec{e})\vec{\epsilon}^{ij}$ and 
+$\vec{e}^{ij}=\vec{\epsilon}^{ij}
++(\vec{e}^{ij}\cdot\vec{e})\vec{\varepsilon}^{ij}$. However they are not
+orthogonal, since
+
+$\displaystyle \vec{\epsilon}^{ij}\cdot\vec{\varepsilon}^{ij}
+=-\frac{\vec{e}^{ij}\cdot\vec{e}}
+{1-\left(\vec{e}^{ij}\cdot\vec{e}\right)^{2}}$.
+
+Therefore, the vector corresponding to the the shortest distance between
+the photon trajectory and the primary trajectory is:
+
+$\displaystyle \vec{\Delta}^{ij}
+=(\vec{r}^{i}-\vec{R})-\left(\vec{\epsilon}^{ij}
++(\vec{e}^{ij}\cdot\vec{e})\vec{\varepsilon}^{ij}\right)
+\left(\vec{\epsilon}^{ij}\cdot(\vec{r}^{i}-\vec{R})\right)
+-\left(\vec{\varepsilon}^{ij}+(\vec{e}^{ij}\cdot\vec{e})
+\vec{\epsilon}^{ij}\right)
+\left(\vec{\varepsilon}^{ij}\cdot(\vec{r}^{i}-\vec{R})\right)$, or
+
+$\displaystyle \Delta_{\alpha}^{ij}=\left(\delta_{\alpha\beta}
+-\epsilon_{\alpha}^{ij}\epsilon_{\beta}^{ij}
+-\varepsilon_{\alpha}^{ij}\varepsilon_{\beta}^{ij}
+-(\vec{e}^{ij}\cdot\vec{e})\varepsilon_{\alpha}^{ij}\epsilon_{\beta}^{ij}
+-(\vec{e}^{ij}\cdot\vec{e})
+\epsilon_{\alpha}^{ij}\varepsilon_{\beta}^{ij}\right)
+\left(r_{\beta}^{i}-R_{\beta}\right)$.
+
+The operator 
+
+$\displaystyle \begin{array}{lll}
+Q_{\alpha\beta}^{ij}
+& = &\left(\delta_{\alpha\beta}-\epsilon_{\alpha}^{ij}\epsilon_{\beta}^{ij}
+-\varepsilon_{\alpha}^{ij}\varepsilon_{\beta}^{ij}
+-(\vec{e}^{ij}\cdot\vec{e})
+\varepsilon_{\alpha}^{ij}\epsilon_{\beta}^{ij}
+-(\vec{e}^{ij}\cdot\vec{e})
+\epsilon_{\alpha}^{ij}\varepsilon_{\beta}^{ij}\right) \\
+& = & \left(\delta_{\alpha\beta}-\epsilon_{\alpha}^{ij}\epsilon_{\beta}^{ij}
+-\varepsilon_{\alpha}^{ij}\varepsilon_{\beta}^{ij}
+-(\vec{e}^{ij}\cdot\vec{e})
+(\varepsilon_{\alpha}^{ij}\epsilon_{\beta}^{ij}
++\epsilon_{\alpha}^{ij}\varepsilon_{\beta}^{ij})\right)
+\end{array}$
+
+projects onto the sub-space simultaneously orthogonal to
+$\vec{e}^{ij}$ and $\vec{e}$ (or equivalently $\vec{\varepsilon}^{ij}$
+and $\vec{\epsilon}^{ij}$)\footnote{In the case when the photon ray is
+parallel to the primary direction, i.e. when
+$\vec{e}^{ij}\cdot\vec{e}=1$, the values of $t$ and $t^{ij}$ are not
+defined and $\vec{\epsilon}^{ij}$ and $\vec{\varepsilon}^{ij}$ are
+defined in the limit. From a numerical point of view, in this case
+$Q_{\alpha\beta}^{ij}$ can be evaluated from Pythagoras' theorem as
+$Q_{\alpha\beta}^{ij}=\delta_{\alpha\beta}-e_\alpha e_\beta$.}.
+
+$\displaystyle Q_{\alpha\beta}^{ij}\epsilon_{\beta }^{ij}=
+\epsilon_{\alpha}^{ij}-\frac{1}{1-(\vec{e}^{ij}\cdot\vec{e})^{2}}
+\epsilon_{\alpha}^{ij}+\frac{\vec{e}^{ij}\cdot\vec{e}}
+{1-(\vec{e}^{ij}\cdot\vec{e})^{2}}\varepsilon_{\alpha}^{ij}
+-(\vec{e}^{ij}\cdot\vec{e})\frac{1}{1-(\vec{e}^{ij}\cdot\vec{e})^{2}}
+\varepsilon_{\alpha}^{ij}
++(\vec{e}^{ij}\cdot\vec{e})\frac{\vec{e}^{ij}\cdot\vec{e}}
+{1-(\vec{e}^{ij}\cdot\vec{e})^{2}}\epsilon_{\alpha}^{ij}=0$
+
+and
+
+$\displaystyle Q_{\alpha\beta}^{ij}\varepsilon_{\beta }^{ij}=
+\varepsilon_{\alpha}^{ij}
++\frac{\vec{e}^{ij}\cdot\vec{e}}{1-(\vec{e}^{ij}\cdot\vec{e})^{2}}
+\epsilon_{\alpha}^{ij}
+-\frac{1}{1-(\vec{e}^{ij}\cdot\vec{e})^{2}}\varepsilon_{\alpha}^{ij}
++\frac{\vec{e}^{ij}\cdot\vec{e}}{1-(\vec{e}^{ij}\cdot\vec{e})^{2}}
+(\vec{e}^{ij}\cdot\vec{e})\varepsilon_{\alpha}^{ij}
+-\frac{1}{1-(\vec{e}^{ij}\cdot\vec{e})^{2}}
+(\vec{e}^{ij}\cdot\vec{e})\epsilon_{\alpha}^{ij}=0$
+
+and the square of the operator is equal to itself,
+$Q_{\alpha\beta}^{ij}Q_{\beta\gamma}^{ij}=Q_{\alpha\gamma}^{ij}$,
+so that
+
+$\displaystyle \Delta_{\gamma}^{ij}\Delta_{\gamma}^{ij}
+=(r_{\alpha}^{i}-R_{\alpha})Q_{\alpha\gamma}^{ij}Q_{\gamma\beta}^{ij}
+(r_{\beta}^{i}-R_{\beta})=
+(r_{\alpha}^{i}-R_{\alpha})Q_{\alpha\beta}(r_{\beta}^{i}-R_{\beta})$.
+
+It is natural to introduce a $\chi_{3D}^{2}$-like functional which
+represents the total weighted distance between the primary trajectory
+and the trajectories of all the photons detected by the array, which
+has the form
+
+$\displaystyle \chi_{3D}^{2}=\sum\limits_{i,j}n^{ij}
+\left(\vec{\Delta}^{ij}\cdot\vec{\Delta}^{ij}\right)$,
+
+and define 
+
+$\displaystyle Q_{\alpha\beta}^{i}(\vec{e})=
+\frac{1}{N^{i}}\sum\limits_{j}n^{ij}Q_{\alpha\beta}^{ij}=
+\frac{1}{N^{i}}\sum\limits_{j}n^{ij}
+\left(\delta_{\alpha\beta}-\epsilon_{\alpha}^{ij}\epsilon_{\beta}^{ij}
+-\varepsilon_{\alpha}^{ij}\varepsilon_{\beta}^{ij}
+-(\vec{e}^{ij}\cdot\vec{e})
+(\varepsilon_{\alpha}^{ij}\epsilon_{\beta}^{ij}
++\epsilon_{\alpha}^{ij}\varepsilon_{\beta}^{ij})\right)$.
+
+As in the previous method, with the following definitions,
+
+$\displaystyle Y_{\alpha\beta}(\vec{e})
+=\sum\limits_{i}N^{i}Q_{\alpha\beta}^{i}(\vec{e})$,
+
+$\displaystyle F_{\alpha}(\vec{e})
+=\sum\limits_{i}N^{i}r_{\beta}^{i}Q_{\alpha\beta}^{i}(\vec{e})$,
+
+$\displaystyle S(\vec{e})=
+\sum\limits_{i}N^{i}r_{\alpha}^{i}r_{\beta}^{i}Q_{\alpha\beta}^{i}(\vec{e})$,
+and
+
+$\displaystyle N=\sum\limits_{i}N^{i}$,
+
+then $\displaystyle \chi_{3D}^{2}
+=Y_{\alpha\beta}(\vec{e})R_{\alpha}R_{\beta}-F_{\alpha}(\vec{e})R_{\alpha}
+-F_{\beta}(\vec{e})R_{\beta}+S(\vec{e})
+=Y_{\alpha\beta}(\vec{e})R_{\alpha}R_{\beta}-2F_{\alpha}(\vec{e})R_{\alpha}
++S(\vec{e})$.
+
+Minimizing with respect to the primary radius vector, $\vec{R}$, gives
+$Y_{\alpha\beta}(\vec{e})R_{\beta}=F_{\alpha}$.
+
+The operator $Y_{\alpha\beta}(\vec{e})$ is a projection operator onto
+the sub-space perpendicular to $\vec{e}$, hence
+$Y_{\alpha\beta}(\vec{e})e_{\alpha}=0$, and therefore $\vec{e}$ is an
+eigenvector corresponding to zero eigenvalue. The above relation
+cannot be inverted, and the vector $\vec{R}$ is not constrained along
+the direction of $\vec{e}$.
+
+Thus, the solution for $\vec{R}$ needs to be found only in the
+sub-space perpendicular to $\vec{e}$, in the plane defined by the two
+eigenvectors of $Y_{\alpha\beta}(\vec{e})$ with non-zero
+eigenvalue. Once $\vec{R}$ is determined according to this procedure,
+then
+
+$\displaystyle w_{3D}^{2}(\vec{e})
+=\frac{\chi_{3D}^{2}}{N}=\frac{S(\vec{e})
+-Y_{\alpha\beta}(\vec{e})R_{\alpha}(\vec{e})R_{\beta}(\vec{e})}{N}
+=\frac{S(\vec{e})-F_{\alpha}(\vec{e})R_{\alpha}(\vec{e})}{N}$
+
+gives a measure of the physical size of emission region. The value of
+$w_{3D}^{2}$ (or equivalently $\chi_{3D}^{2}$) cannot be analytically
+minimized with respect to $\vec{e}$. As in method 2, a numerical
+minimization strategy must be employed. Again, the problem is two
+dimensional since the vector $\vec{e}$ is constrained by the
+normalization requirement that $\vec{e}\cdot\vec{e}=1$.
+The curvature of the $\chi_{3D}^{2}$ functional can be calculated,
+giving estimates of the size of the ellipses of uncertainty on the
+fitted parameters. In this case the value of the curvature with respect 
+to the impact point can be calculated explicitly,
+
+$\displaystyle \frac{1}{\chi_{3D}^2}\frac{\partial^2\chi_{3D}^2}
+{\partial R_\alpha\partial R_\beta} = \frac{Y_{\alpha\beta}}{\chi_{3D}^2}$,
+
+however the value with respect to the arrival direction,
+
+$\displaystyle \frac{1}{\chi_{3D}^2}\frac{\partial^2\chi_{3D}^2}
+{\partial e_\alpha\partial e_\beta}$
+
+must be estimated numerically.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% SECTION 3 -- PRIMARY PARAMETERS
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Primary parameters}
+
+Having reconstructed the primary trajectory using any of the above
+methods, or any other, a number of parameters can be calculated, which
+are potentially useful in rejecting background events and estimating
+energy. Three sets of parameters are presented. The first set is
+derived from the geometry of the event, and include such parameters as
+the track length over which the emission is detected, the depth of
+emission in the atmosphere and mean radiation emission angle. The
+second set takes advantage of the FADC timing information to provide a
+measure of the degree to which the photon arrival times are consistent
+with having originated from a cascade moving with the speed of light
+along the reconstructed trajectory. The third set provides an estimate
+of the number of photon emitters in the shower core (per unit track
+length) under the assumption that the emission is either ``diffusive''
+or ``coherent''.
+
+The issue of cleaning must be carefully considered when calculating
+image parameters. Simulations show that optimal reconstruction of the
+shower axis requires the images be cleaned \textit{even in the absence
+of night sky noise}. Cleaning removes Cherenkov photons produced by
+particles at the edges of the emission region which have undergone
+considerable Coulomb scattering, leaving those emitted close to the
+core of the shower which better trace the path of the
+primary. However, for the purpose of rejecting background events the
+same level of cleaning may be detrimental; the cleaning procedure
+should preserve differences in the structure of hadronically and
+electromagnetically initiated showers. Thus, optimal event geometry 
+reconstruction, CR background rejection, and $\gamma$-ray energy 
+estimation may require different cleaning regimes.
+
+We recap the parameters that have been presented thus far. Each of
+the reconstruction methods provides an estimate on the arrival
+direction of the primary ($\vec{e}$) and its impact point in a
+perpendicular plane ($\vec{R}$). They provide a ``goodness of fit''
+parameter, $w=\sqrt{\chi^2/N}$ and estimates on the axes of the
+uncertainty ellipse in $\vec{e}$ and $\vec{R}$. All of these
+parameters (except $R$) are potentially of interest for identification
+of genuine $\gamma$-rays. The arrival direction provides a powerful
+rejection of background when the source position is known. The
+parameter $w$ enables a generic ``shape-cut''. In the case of the
+3-D method, $w$ corresponds to the physical width of the region around
+the shower axis from which the photons originate.  This provides an
+appealing handle to reject the broader, high-$p_\perp$ proton
+cascades, particularly when the energy of the event is accounted
+for. Even if method 1 or 2 is used to reconstruct the event axis, it
+may be beneficial to compute $w_{3D}$ with the reconstructed
+axis\footnote{However $w_{3D}^2$ must be calculated using the full
+equation, $\chi_{3D}^{2}
+=Y_{\alpha\beta}(\vec{e})R_{\alpha}R_{\beta}-F_{\alpha}(\vec{e})R_{\alpha}
+-F_{\beta}(\vec{e})R_{\beta}+S(\vec{e})
+=Y_{\alpha\beta}(\vec{e})R_{\alpha}R_{\beta}-2F_{\alpha}(\vec{e})R_{\alpha}
++S(\vec{e})$, since the minimization of $\chi_{3D}^{2}$ with respect
+to $R_{\alpha}$ has not been performed.}.
+
+\subsection{Geometrical parameters}
+
+Figure~\ref{Fig::Geometry} depicts the geometry of an individual
+photon ray with respect to the axis of the cascade.
+
+\begin{figure}[p]
+\centerline{\resizebox{0.9\textwidth}{!}{\includegraphics[]{Geometry.pdf}}}
+\caption{\label{Fig::Geometry} Geometry of the event in 3D space. The cascade 
+(primary) trajectory is shown in blue. A single photon ray, detected
+by one of the telescopes, is shown in red. Various distances and
+angles are shown.}
+\end{figure}
+
+The arrival direction of every detected photon in the image can be
+written as, $\vec{e}^{ij}=\vec{p}^{ij} -\sqrt{1-(\vec{p}^{ij\cdot
+}\vec{p}^{ij})}\vec{e}^{i}$. Its emission angle with respect to the
+direction of the primary, $\theta ^{ij}$, can be evaluated from,
+
+$\displaystyle 
+\sin\theta^{ij}=\sqrt{1-\left(\vec{e}^{ij}\cdot\vec{e}\right)^{2}}$.
+
+The distance to the emission point along the primary trajectory is
+given by\footnote{Again, a problem will arise in the following
+equations if $\vec{e}^{ij}\cdot\vec{e}=1$. If this is the case, it is
+probably best to simply skip the pixel $j$ completely.},
+
+$\displaystyle d^{ij}=
+\left(\frac{\vec{e}-\left(\vec{e}^{ij}\cdot\vec{e}\right)
+\vec{e}^{ij}}{1-\left(\vec{e}^{ij}\cdot\vec{e}\right)^{2}}
+\cdot\left(\vec{r}^{i}-\vec{R}\right)\right)
++\left(\vec{R}\cdot\vec{e}\right)$,
+
+and the vector to this point from the origin is,
+
+$\displaystyle \vec{D}^{ij}
+=\vec{R}-\left(\vec{R}\cdot\vec{e}\right)\vec{e}+\vec{e}d^{ij}$
+
+Similarly, the vector from the origin to the closest approach between
+the photon ray and the primary is,
+
+$\displaystyle \vec{L}^{ij}=\vec{r}^{i}
+-\left(\vec{r}^{i}\cdot\vec{e}^{ij}\right)\vec{e}^{ij}+\vec{e}^{ij}l^{ij}$,
+
+where
+
+$\displaystyle l^{ij}=-\left(\frac{\vec{e}^{ij}-\left(\vec{e}^{ij}\cdot\vec{e}
+\right)\vec{e}}{1-\left(\vec{e}^{ij}\cdot\vec{e}\right)^{2}}\cdot\left(
+\vec{r}^{i}-\vec{R}\right)\right)+\left(\vec{r}^{i}\cdot\vec{e}^{ij}\right)$
+
+is a distance from the telescope to the emission point along the
+photon trajectory. Finally,
+
+$\displaystyle \vec{\Delta}^{ij}=\vec{D}^{ij}-\vec{L}^{ij}$
+
+is the vector connecting the points of closest approach of the two
+trajectories.
+
+These geometrical values can be used to calculate various telescope 
+specific moments. The simplest are,
+
+$\displaystyle d^{(1)i} = \frac{1}{N^{i}}\sum\limits_{j}n^{ij}d^{ij}$ and
+$\displaystyle d^{(2)i} = \left[ \frac{1}{N^{i}}\sum\limits_{j}n^{ij}(d^{ij}-d^{(1)i})^2\right]^{1/2}$,
+
+$\displaystyle l^{(1)i} = \frac{1}{N^{i}}\sum\limits_{j}n^{ij}l^{ij}$ and
+$\displaystyle l^{(2)i} = \left[ \frac{1}{N^{i}}\sum\limits_{j}n^{ij}(l^{ij}-l^{(1)i})^2\right]^{1/2}$,
+
+$\displaystyle \theta^{(1)i} = \frac{1}{N^{i}}\sum\limits_{j}n^{ij}\theta^{ij}$ and
+$\displaystyle \theta^{(2)i} = \left[ \frac{1}{N^{i}}\sum\limits_{j}n^{ij}(\theta^{ij}-\theta^{(1)i})^2\right]^{1/2}$, and
+
+$\displaystyle \vec{\Delta}^{(1)i} = \frac{1}{N^{i}}\sum\limits_{j}n^{ij}\vec{\Delta}^{ij}$ and
+$\displaystyle \Delta_{\alpha\beta}^{(2)i} = \frac{1}{N^{i}}\sum\limits_{j}n^{ij}(\Delta_\alpha^{ij}-\Delta_\alpha^{(1)i})(\Delta_\beta^{ij}-\Delta_\beta^{(1)i})$.
+
+The parameter $d^{(1)i}$, the mean distance along the
+cascade trajectory to the photon emission points, can be used to
+reconstruct the depth in the atmosphere at which the emission occurred.
+The vector from the origin to this mean emission point is
+
+$\displaystyle \vec{D}^{(1)i}
+=\vec{R}-\left(\vec{R}\cdot\vec{e}\right)\vec{e}+\vec{e}\,d^{(1)i}$.
+
+If $\hat{z}$ is an upward going unit vector (along the z-axis in the
+GRF) then the height of the emission above the array is
+$\vert\vec{D}^{(1)i}\cdot\hat{z}\vert$. It can be converted into the
+depth of the emission in the atmosphere (in $g/cm^2$ or equivalent)
+using a tabulated atmospheric profile or an atmospheric model. We
+denote this depth as $G^{(1)i}$. Once $G^{(1)i}$ is known, the
+Cherenkov angle at the mean emission point can be calculated,
+$\theta_c^i(G^{(1)i})$, and expressed as a rapidity,
+$\eta_c^i(G^{(1)i})=\ln\tan(\theta_c^i(G^{(1)i})/2)$.
+
+The parameter $d^{(2)i}$, the dispersion of $d^{ij}$, gives an
+estimate of the length over which the emission detected by telescope
+$i$ occurs. This track length is $2d^{(2)i}$. The parameters
+$l^{(1)i}$ and $l^{(2)i}$ are used below in the calculation of the
+timing parameters. The mean emission angle with respect to the primary
+axis, $\theta^{(1)i}$, can be expressed as a rapidity,
+$\eta^{(1)i}=\ln\tan(\theta^{(1)i}/2)$, and used in energy estimation,
+e.g. as described below.
+
+The analysis of $\vert\vec{\Delta}^{(1)i}\vert$ might provide a
+sensitive measure of asymmetry in the light distribution or the
+presence of clumps in the development of the cascade.
+
+Further, correlations between these parameters,
+
+$\displaystyle \xi^{(2)i} =
+\frac{1}{N^i}\sum\limits_{j}n^{ij}(d^{ij}-d^{(1)i})(\theta^{ij}
+-\theta^{(1)i})$,
+
+$\displaystyle \vec{\phi}^{(2)i} =
+\frac{1}{N^i}\sum\limits_{j}n^{ij}(\vec{\Delta}^{ij}
+-\vec{\Delta}^{(1)i})(\theta^{ij}-\theta^{(1)i})$, and
+
+$\displaystyle \vec{\psi}^{(2)i} =
+\frac{1}{N^i}\sum\limits_{j}n^{ij}(\vec{\Delta}^{ij}
+-\vec{\Delta}^{(1)i})(d^{ij}-d^{(1)i})$, 
+
+can also be studied and perhaps provide additional possibility for 
+background rejection.
+
+Finally, the telescopes sample different, non-overlapping, regions of
+the shower evolution in which different emission regimes may occur. A
+simple additive combination of the above parameters across telescopes
+is not physically meaningful in general.
+
+\subsection{Timing parameters}
+
+We define $t_0$ as the absolute time at which the cascade reaches the
+point along its trajectory where $\vec{r}\cdot\vec{e}=0$. If we assume
+that the core position, $\vec{R}$, satisfies $\vec{R}\cdot\vec{e}=0$,
+then the trajectory can be written as
+
+$\displaystyle \vec{r}(t)=c(t-t_0)\vec{e}+\vec{R}$.
+
+The photons detected by pixel $j$ of telescope $i$, were emitted at
+the time $t_e^{ij}=t_0-d^{ij}/c$. The photon propagation time is
+$\Delta t_{p} = l^{ij}/c+\tau^{ij}(G^{ij})$, where $\tau^{ij}(G^{ij})$
+accounts for the atmospheric light propagation delay with respect to
+the vacuum, which can be calculated from an atmospheric model. Since
+information about the impact point on the reflector is lost, no
+account for the non-isochronous mirror can be made. The photon is
+therefore detected by the pixel at
+
+$\displaystyle t_d^{ij}=t_0-d^{ij}/c+l^{ij}/c+\tau^{ij}(G^{ij})$.
+
+The measured detection time of every photon, $t_d^{ij}$, provides an
+estimate for $t_0$, 
+
+$\displaystyle t_0^{ij}=t_d^{ij}-\frac{l^{ij}}{c}+\frac{d^{ij}}{c}
+-\tau^{ij}(G^{ij})$.
+
+The mean and dispersion of $t_0$ on a per-telescope basis are
+
+$\displaystyle t_0^{(1)i} = \frac{1}{N^i}\sum\limits_{j}n^{ij}t_0^{ij}$
+and
+$\displaystyle t_0^{(2)i} = \left[
+\frac{1}{N^i}\sum\limits_{j}n^{ij}\left(t_0^{ij}-t_0^{(1)i}\right)^2
+\right]^{1/2}$.
+
+Assuming that the relative timing can be extended across multiple
+telescopes, i.e. the phase of the FADC sampling is locked across
+telescopes, or some method of matching samples between telescopes is
+available, then
+
+$\displaystyle t_0^{(1)} = \frac{1}{N}\sum\limits_{ij}n^{ij}t_0^{ij}$
+and
+$\displaystyle t_0^{(2)} = \left[
+\frac{1}{N}\sum\limits_{ij}n^{ij}\left(t_0^{ij}-t_0^{(1)}\right)^2
+\right]^{1/2}$.
+
+Through these parameters one may hope to use FADC timing information
+to improve rejection of the background and of inaccurately
+reconstructed photon events. If new information is contained in the
+time domain then an extension of the $\chi^2$-like event
+reconstruction to four dimensions to include time may be fruitful. The
+success of this strategy has yet to be shown.
+
+\subsection{Luminosity and density of emitters}
+
+The light detected by a telescope can be produced in two regimes,
+depending on the event geometry. If the telescope observes the event
+when emission angle is close to the Cherenkov angle, the radiation
+represents a coherent, cylindrical wave and therefore its intensity
+scales inversely proportional to the distance from the core and from
+the emission point. If the telescope observes photons at angles much
+larger than the Cherenkov angle, the radiation is dominated by low
+energy particles which have been substantially affected by multiple
+Coulomb scattering. In this regime, the particle trajectories are
+randomly distributed, the source of the photons is diffusive, and
+its intensity scales inversely proportional to the distance squared.
+
+For Cherenkov radiation, the number of photons emitted per unit track
+length is proportional to the number density of particles, $\lambda$,
+and to $\sin^2\theta_c$.  From the intensity of measured light and the
+event geometry an estimate of the density of emitters can be made in
+each of the emission regimes.
+
+\subsubsection*{Diffusive regime}
+
+In the diffusive regime, the solid angle subtended by telescope $i$
+from the mean point of emission is
+
+$\displaystyle \Omega^i = \frac{\pi(D/2)^2}{(l^{(1)i})^2}$,
+
+where $D$ is diameter of telescope's primary mirror. 
+The number of photons detected by the telescope from the diffusive
+(isotropic) emission along the track length of $2d^{(2)i}$ is given in
+terms of a constant proportional to the density of emitters,
+$\lambda_d^i$, as
+
+$\displaystyle N^i = 
+\lambda_d^i\sin^2\theta_c^i(G^{(1)i})
+2d^{(2)i}\frac{1}{4\pi}\frac{\pi D^2}{4(l^{(1)i})^2}$,
+
+and hence
+
+$\displaystyle \lambda_d^i = 
+\frac{8N^i(l^{(1)i})^2}{d^{(2)i}D^2\sin^2\theta_c^i(G^{(1)i})}$.
+
+\subsubsection*{Coherent regime}
+
+\begin{figure}[t]
+\centerline{\resizebox{0.3\textwidth}{!}{\includegraphics[]{Coherent.pdf}}}
+\caption{\label{Fig::Coherent} Geometry of coherent emission. The cascade 
+(primary) trajectory is shown in blue. The Cherenkov pool is shown as
+the red cone.}
+\end{figure}
+
+In the coherent regime, the photons detected by telescope $i$ are
+emitted along a track of length $D/\sin\theta_c^i(G^{(1)i})$ (see
+Figure~\ref{Fig::Coherent}). The photons from this track segment are
+emitted into an annulus which has an area of
+$2\pi l^{(1)i}\sin\theta_c^i(G^{(1)i})D$ at the level of the telescope.
+The fraction of photons which are detected is
+
+$\displaystyle f = \frac{\pi D^2/4}{2\pi l^{(1)i}\sin\theta_c^i(G^{(1)i})D}$
+
+The number of photons detected by the telescope from the coherent
+(Cherenkov) emission along the track length is given in terms
+of a constant proportional to the density of emitters, $\lambda_c^i$,
+is
+
+$\displaystyle N^i = 
+\lambda_c^i\sin^2\theta_c^i(G^{(1)i}) \frac{D}{\sin\theta_c^i(G^{(1)i})} 
+\frac{\pi D^2/4}{2\pi l^{(1)i}\sin\theta_c^i(G^{(1)i})D}$,
+
+and hence 
+
+$\displaystyle \lambda_c^i = \frac{8N^il^{(1)i}}{D^2}
+= \lambda_d^i \frac{d^{(2)i} \sin^2\theta_c^i(G^{(1)i})}{l^{(1)i}}$.
+
+\subsubsection*{Energy estimation}
+
+We consider estimating the energy of the primary from each of the 
+telescope images by utilizing simulations to calculate the functions
+
+$\displaystyle E^i = E^i\left(\lambda_d^i,G^{(1)i},\eta^i\right)$
+
+and form a single estimate by weighting the individual telescope
+estimates by the number of emitters in the core region, giving
+
+$\displaystyle \tilde{E} = 
+\frac{\sum\limits_i \lambda_d^i E^i}{\sum\limits_i \lambda_d^i}$ and
+$\displaystyle \sigma_{\tilde{E}}^2 
+= \frac{\sum\limits_i \lambda_d^i (E^i - \tilde{E})^2}
+{\sum\limits_i \lambda_d^i}$
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% SECTION 4 -- STATISTICAL WEIGHTING
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Note on statistical weighting}
+
+We have presented a number of parameters, most of which are calculated
+by weighting simple geometrical quantities (for example the distance
+from the shower axis to each detected photon ray) with the measured
+amount of light in each channel. This approach has been used for many
+years in $\gamma$-ray astronomy in the calculation of Hillas'
+parameters. However, $\chi^2$-like functionals formed in this manner
+do not have the statistical properties of the standard $\chi^2$
+distribution and the results depend sensitively on the cleaning method 
+employed to isolate shower image from the night sky background noise. 
+
+Other weighting schemes are possible, one such is to weight the
+individual channels according to the level of confidence in the
+measurement, or more simply, by the signal-to-noise ratio. With
+$n^{ij}$ being the number of photo-electrons detected in channel $j$
+of telescope $i$\footnote{Obtained by dividing the integrated signal
+by the DC/PE ratio}, we define the variance in the measurement of
+$n^{ij}$ as
+
+$\displaystyle (\sigma_n^{ij})^2 = n^{ij} + (\sigma_{nsb}^{ij})^2$,
+
+where $\sigma_{nsb}^{ij}$ is the R.M.S. level of the night sky
+background noise in photo-electrons. In this scheme the weights are:
+
+$\displaystyle w^{ij} = \frac{n^{ij}}{\sigma_n^{ij}}$,
+
+$\displaystyle W^i = \sum\limits_i w^{ij}$, and
+
+$\displaystyle W = \sum\limits_i W^i$
+
+These weights can be used to calculate the parameters in the previous
+sections (apart from the density of emitters) by making the
+substitution $(n^{ij}, N^i, N)\rightarrow(w^{ij},W^i,W)$.
+
+In general, the issue of weighting is closely coupled to that of
+cleaning and a full solution to the problem of shower reconstruction
+and identification requires the application of a maximal likelihood
+(ML) approach. This, however, requires a detailed knowledge of the
+properties of both the background noise and the fluctuations of the
+Cherenkov emission in the cascade. This information needs to be
+derived through simulation (usually very time consuming). That the
+methods outlined above have a relative simplicity and independence
+from the details of atmospheric cascade development and from
+simulations may be viewed as an advantage, even if they sacrifice
+a rigorous treatment of the problem.
+
+The extent of the gain to obtained through the application of ML
+methods, as discussed elsewhere (see for example the work of
+S.~Le~Bohec), needs further investigation. The same can also be said
+for an evaluation of the methods outlined in this memo, since the
+problem of weighting is coupled with the choice of cleaning
+technique(s). These remain unspecified, but must be derived, based on
+intuition and simulations, for the different purposes listed (event
+geometry reconstruction, background rejection, energy determination).
+
+\end{document}

@@ -1,0 +1,83 @@
+# VERITAS diagnostics summary information
+# $Id: diagnostics_dat_header.txt,v 3.10 2009/10/14 21:22:28 matthew Exp $
+#
+# This file contains information calculated by the diagnostics program from
+# the data. As such, it may not agree with what is found in the log-sheet or
+# database. The format of the entries in this file may evolve as new tests
+# are added to the diagnostics code. Each line contains a version number which
+# can be used to determine the format of the data it contains.
+# 
+# Explanation of each field:
+#
+# 1   - Run number
+# 2   - Version number describing the format of the remainder of the line
+#
+# VERSION 0 FIELDS
+#
+# 3   - Date or run start [UTC]
+# 4   - Time of run start [UTC]
+# 5   - MJD of run start
+# 6   - Likely observation target
+# 7   - Likely observation mode
+# 8   - Mean elevation [deg]
+# 9   - Mean azimuth [deg]
+# 10  - Elapsed run time (L3 scaler) [min]
+# 11  - Live run time (L3 scaler) [min]
+# 12  - L3 rate per unit live time [L3 events/sec]
+# 13  - Mean minute-to-minute rate per unit elapsed time [events/sec]
+# 14  - RMS minute-to-minute rate per unit elapsed time [events/sec]
+# 15  - Square-root ( Chi^2 per degree of freedom ) for constant rate model
+# 16  - Likely L3 threshold [telescopes]
+# 17  - T1: Likely L2 threshold [channels]
+# 18  - T1: Likely CFD threshold [mV]
+# 19  - T1: Spread in likely CFD threshold [mV]
+# 20  - T1: Flux of cosmic-ray spectrum [events/sec/kDC]
+# 21  - T1: Spectral index of cosmic-ray spectrum
+# 22  - T1: Throughput
+# 23-28  - T2: as above (T1 field number + 6)
+# 29-34  - T3: as above (T1 field number + 12)
+# 35-40  - T4: as above (T1 field number + 18)
+#
+# VERSION 1 FIELDS
+#
+# 41  - Elapsed run time (GPS) [min]
+# 42  - Live time (GPS - estimated from delta-T) [min]
+# 43  - Laser run number
+# 44  - Mean moon elevation [deg]
+# 45  - Mean moon phase [%]
+# 46  - T1: Mean right ascension [deg]
+# 47  - T1: Mean declination [deg]
+# 48  - T1: RMS right ascension [deg]
+# 49  - T1: RMS declination [deg]
+# 50  - T1: Median L1 rate [kHz]
+# 51  - T1: Median current [uA]
+# 52  - T1: Mean L2 rate [Hz]
+# 53  - T1: Number missing events [1]
+# 54  - T1: Number of muons passing cuts [1]
+# 55  - T1: Mean muon charge [DC]
+# 56  - T1: RMS muon charge [DC]
+# 57  - T1: PMT gain from laser [DC/PE]
+# 58  - T1: Mean moon angular separation [deg]
+# 59  - T1: Num suppressed channels [channels]
+# 60-73  - T2: as above (T1 field number + 14)
+# 74-87  - T3: as above (T1 field number + 28)
+# 88-101 - T4: as above (T1 field number + 42)
+#
+# VERSION 2 FIELDS 
+#
+# 102 - Number of telescopes taking data
+# 103 - Bit mask of participating telescopes
+# 104 - Mean pedestal variance [DC]
+# 105 - Mean pedestal variance [PE]
+# 106 - Mean FIR0 temperature
+# 107 - RMS FIR0 temperature
+# 108 - T1: Laser run number
+# 109 - T1: Median pedestal variance [DC]
+# 110 - T1: Median pedestal variance [PE]
+# 111 - T1: Mean FIR sky temperature
+# 112 - T1: RMS FIR sky temperature
+# 113-117 - T2: as above (T1 field number + 5)
+# 118-122 - T3: as above (T1 field number + 10)
+# 123-127 - T4: as above (T1 field number + 15)
+
+
