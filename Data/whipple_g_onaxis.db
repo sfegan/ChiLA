@@ -1,0 +1,114 @@
+#
+# Sample configuration file for "make_simdb"
+#
+# Stephen Fegan / 2005-08-17
+#
+
+# Directive: EnergyResolution <BinsPerDecade> <EZeroGeV>
+EnergyResolution 16 10
+
+# Directive: SpectrumPowerLaw <Index> <ELoGeV> <EHiGeV> \
+#                             <NumEventsAtELo> <ScaleWithSamplingRadius>
+SpectrumPowerLaw -1.5 100 48697 103138 true
+SpectrumPowerLaw 0.0 100 48697 49 false
+
+# Directive: MonoChromaticSpectrum <EnergyGeV> <NumEvents>
+#SpectrumMonoChromatic 100 100000
+
+# Directive: EventCountMultiplier <Multiplier>
+EventCountMultiplier 1
+
+# Directive: WorkUnitSizeFraction <Fraction>
+WorkUnitSizeFraction 0.01
+
+# Directive: WorkUnitSize <ELoGeV> <EHiGeV> <NumEvents>
+# WorkUnitSize 1000 100000 1
+
+# Directive: SamplingRadiusMinimum <RadiusM>
+SamplingRadiusMinimum 150
+
+# Directive: SamplingRadiusLogarithmic <ELoGeV> <EHiGeV> \
+#                                      <RadiusELoM> <RadiusEHiM>
+SamplingRadiusLogarithmic 40 48697 150 400
+
+# Directive: Optics <ZnLoDeg> <ZnHiDeg> <OpticsID>
+Optics 0 90 0
+
+# Directive: PointingGrid <Distribution> <TargetMode> <ZnLoDeg> <ZnHiDeg> \
+#                         <ZnNBin> <AzLoDeg> <AzHiDeg> <AzNBin>
+#  
+# Valid values for <Distribution> are:
+#
+# EqualAreaEqualAzimuth: Grid points are isotropically distributed in sky with
+#                        <AzNBin> equally spaced azimuth bins and <ZNNBiN> 
+#                        zenith bins spaced equally as cos(zn).
+# 
+# EqualAreaEqualZenith:  Grid points are isotropically distributed in sky with
+#                        <ZnNBin> (approximately) equally spaced zenith bins. 
+#                        For each zenith bin, the number of azimuth bins is
+#                        chosen to keep the area per bin equal. The number of
+#                        azimuth bins in the largest zenith bin is given by 
+#                        <AZNBin>. If <AzNBin>=0 then the number is chosen so
+#                        that dAZ ~= cos(Zn) dZn (i.e. the grid is "square")
+#
+# Valid values for <TargetMode> are:
+#
+# Center:       Observations are targeted at the center of each bin in the 
+#               grid 
+#
+# Patch:        Observations are targeted isotropically over the area of each
+#               bin
+#
+# FixedZenith:  Observations are target along a "line" of constant zenith 
+#               angle through the middle of the bin
+#
+# FixedAzimuth: Observations are target along a "line" of constant azimuth 
+#               angle through the middle of the bin
+PointingGrid EqualAreaEqualZenith Center 0 40 4 0 360 0
+
+# Directive: Primary <PrimaryType>
+#
+# Valid values for <PrimaryType> are:
+#
+# Gamma:          Gamma ray
+# Proton:         Proton
+# Electron:       Electron
+# Helium:         Helium ion (A=4 Z=2)
+# Iron:           Iron ion (A=56 Z=26)
+# any integer n:  CORSIKA particle type "n" (see CORSIKA manual, section 8)
+Primary Gamma
+
+# Directive: ArrayPointing <PointingMode> [<PointingParameter> ...]
+#
+# Valid values for <PointingMode> and associated <PointingParameters> are:
+#
+# Parallel:       Parallel pointing of all telescopes at target
+ArrayPointing Parallel
+
+# Directive: PrimaryArrivalDistribution <Distribution> [<DistParameter> ...]
+#
+# Valid values for <Distribution> and associated <DistParameters> are:
+#
+# Isotropic <InnerRadiusDeg> <OuterRadiusDeg>: Scatter primary isotropically
+#		  around target direction in ring between inner and outer radii
+PrimaryArrivalDistribution Isotropic 0 0
+
+# Directive: MakeSteeringCommandLine <CommandLineOption> [<Value>]
+MakeSteeringCommandLine 'magnetic_arizona'
+
+# Directive: LoadOptics <OpticsID> <Source> <SourceLocation>
+#
+# Valid values for <Source> are:
+#
+# FromINIFile:  Generate a new optics array from INI file whose path is 
+#               given by <SourceLocation>
+#
+# FromDumpFile: Generate a new optics array from a optics dump file (see
+#               dump_optics program) whose path is given by <SourceLocation>
+LoadOptics 0 FromIniFile whipple_optics_real.ini
+
+LoadQuantumEfficiency quanteff.dat
+LoadMirrorReflectivity mirreff.dat
+LoadAtmosphericAbsorption us76.50km.ext
+LoadModtranProfile atmprof6.dat
+
